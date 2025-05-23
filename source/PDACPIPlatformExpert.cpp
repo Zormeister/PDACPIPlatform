@@ -35,24 +35,85 @@
 
 #include "../include/PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
-#include "acpi_fadt.h"
+// #include "acpi_fadt.h" // No longer directly needed, ACPICA handles FADT access.
+#include "../include/acpica/acpi.h" // For ACPICA APIs
+#include <IOKit/pwr_mgt/IOPMrootDomain.h> // For IOPMrootDomain
 
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOService)
 
 bool PDACPIPlatformExpert::start(IOService* provider)
 {
-    IOLog("PDACPIPlatformExpert::start\n");
-    if (!super::start(provider))
-        return false;
+    IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log
 
+    if (!super::start(provider)) {
+        IOLog("PDACPIPlatformExpert::start - super::start failed\n");
+        return false;
+    }
+
+    // Initialize ACPICA OS Layer
+    ACPI_STATUS status = AcpiOsInitialize();
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiOsInitialize failed with status %s\n", AcpiFormatException(status));
+        return false;
+    }
+
+    status = AcpiInitializeSubsystem();
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiInitializeSubsystem failed with status %s\n", AcpiFormatException(status));
+        AcpiTerminate(); // Cleanup
+        return false;
+    }
+
+    // For UEFI, passing NULL for InitialTableArray relies on AcpiOsGetRootPointer
+    // to find the XSDT from the EFI System Table.
+    // InitialTableCount (second param) is ignored by ACPICA when InitialTableArray (first param) is NULL.
+    // AllowResize (third param) FALSE is typical.
+    status = AcpiInitializeTables(NULL, 0, FALSE);
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiInitializeTables failed with status %s\n", AcpiFormatException(status));
+        AcpiTerminate(); // Cleanup
+        return false;
+    }
+
+    status = AcpiLoadTables();
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiLoadTables failed with status %s\n", AcpiFormatException(status));
+        AcpiTerminate(); // Cleanup
+        return false;
+    }
+
+    status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiEnableSubsystem failed with status %s\n", AcpiFormatException(status));
+        AcpiTerminate(); // Cleanup
+        return false;
+    }
+
+    status = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
+    if (ACPI_FAILURE(status)) {
+        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiInitializeObjects failed with status %s\n", AcpiFormatException(status));
+        AcpiTerminate(); // Cleanup
+        return false;
+    }
+
+    IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
+
+    // Existing IOPMrootDomain logic
+    // Ensure pmRootDomain is declared in PDACPIPlatformExpert.h: IOPMrootDomain *pmRootDomain;
     pmRootDomain = OSDynamicCast(IOPMrootDomain,
         IOService::waitForService(IOService::serviceMatching("IOPMrootDomain")));
 
-    if (pmRootDomain)
-        IOLog("Found IOPMrootDomain\n");
+    if (pmRootDomain) {
+        IOLog("PDACPIPlatformExpert::start - Found IOPMrootDomain\n");
+    } else {
+        IOLog("PDACPIPlatformExpert::start - IOPMrootDomain not found\n");
+    }
 
+    // The service should be registered after successful initialization.
     registerService();
+    IOLog("PDACPIPlatformExpert::start - Service registered.\n");
+
     return true;
 }
 
