@@ -1,6 +1,6 @@
 # PDACPIPlatform
 
-PDACPIPlatform is a kernel extension (kext) for the PureDarwin operating system. It serves as an open-source alternative to Apple's proprietary `AppleACPIPlatform.kext`.
+Work in Progress [WIP] Project, PDACPIPlatform is a kernel extension (kext) for the PureDarwin operating system. It serves as an open-source alternative to Apple's proprietary `AppleACPIPlatform.kext`.
 
 The primary purpose of this kext is to initialize and manage the ACPI (Advanced Configuration and Power Interface) subsystem by leveraging Intel's ACPICA (ACPI Component Architecture) library. This allows for more flexible and potentially improved ACPI functionality on a wider range of hardware, particularly for systems running PureDarwin on various hardware.
 
