@@ -26,12 +26,21 @@
 			<string>org.puredarwin.driver.PDACPIPlatform</string>
 			<key>IOClass</key>
 			<string>PDACPIPlatformExpert</string>
+			<key>IONameMatch</key>
+			<string>ACPI</string>
 			<key>IOProviderClass</key>
-			<string>IOResources</string>
+			<string>IOPlatformExpertDevice</string>
+			<key>IOProbeScore</key>
+			<integer>10000</integer>
+			<key>top-level</key>
+			<array>
+				<dict>
+					<key>IOName</key>
+					<string>bios</string>
+				</dict>
+			</array>
 		</dict>
 	</dict>
-	<key>LSRequiresNativeExecution</key>
-	<false/>
 	<key>OSBundleLibraries</key>
 	<dict>
 		<key>com.apple.iokit.IOPCIFamily</key>
