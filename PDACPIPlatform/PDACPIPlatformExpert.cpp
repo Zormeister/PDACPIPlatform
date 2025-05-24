@@ -36,7 +36,6 @@
 #include "PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
 #include "acpica/acpi.h" // For ACPICA APIs
-#include <IOKit/pwr_mgt/IOPMrootDomain.h>
 
 #define super IOACPIPlatformExpert
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
@@ -98,20 +97,7 @@ bool PDACPIPlatformExpert::start(IOService* provider)
         return false;
     }
 
-   
-
     IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
-
-    // Existing IOPMrootDomain logic
-    // Ensure pmRootDomain is declared in PDACPIPlatformExpert.h: IOPMrootDomain *pmRootDomain;
-    pmRootDomain = OSDynamicCast(IOPMrootDomain,
-        IOService::waitForService(IOService::serviceMatching("IOPMrootDomain")));
-
-    if (pmRootDomain) {
-        IOLog("PDACPIPlatformExpert::start - Found IOPMrootDomain\n");
-    } else {
-        IOLog("PDACPIPlatformExpert::start - IOPMrootDomain not found\n");
-    }
 
     // The service should be registered after successful initialization.
     registerService();
@@ -126,18 +112,6 @@ void PDACPIPlatformExpert::stop(IOService* provider)
     super::stop(provider);
 }
 
-void PDACPIPlatformExpert::handleSleepRequest()
-{
-    if (pmRootDomain)
-        pmRootDomain->sleepSystem(this);
-}
-
-void PDACPIPlatformExpert::handleWakeRequest()
-{
-    if (pmRootDomain)
-        pmRootDomain->wakeSystem(this);
-}
-
 extern "C" ACPI_TABLE_FADT* getFADT();
 extern "C" void outw(uint16_t port, uint16_t val);
 extern "C" void IOSleep(uint32_t ms);
@@ -145,7 +119,7 @@ extern "C" void IOSleep(uint32_t ms);
 void PDACPIPlatformExpert::performACPIPowerOff()
 {
     ACPI_TABLE_FADT* fadt = getFADT();
-    if (!fadt || fadt->PM1aCntBlock == 0)
+    if (!fadt || fadt->Pm1aControlBlock == 0)
         return;
 
     ACPI_OBJECT* s5Obj;
@@ -162,9 +136,9 @@ void PDACPIPlatformExpert::performACPIPowerOff()
     uint16_t slp_en = 1 << 13;
     uint16_t value = (slp_typ << 10) | slp_en;
 
-    outw(fadt->PM1aCntBlock, value);
-    if (fadt->PM1bCntBlock)
-        outw(fadt->PM1bCntBlock, value);
+    outw(fadt->Pm1aControlBlock, value);
+    if (fadt->Pm1bControlBlock)
+        outw(fadt->Pm1bControlBlock, value);
 
     IOSleep(10000);
     while (1) asm volatile("hlt");

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 42;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -14,7 +14,6 @@
 		F01A4B7A2DE12FE100349FD5 /* pci_config_access.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4B5E2DE12FE100349FD5 /* pci_config_access.h */; };
 		F01A4B852DE12FE100349FD5 /* PDACPIPlatformExpert.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4B602DE12FE100349FD5 /* PDACPIPlatformExpert.h */; };
 		F01A4BAA2DE139BD00349FD5 /* AcpiOsLayer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BA92DE139B500349FD5 /* AcpiOsLayer.cpp */; };
-		F01A4CE42DE13E2500349FD5 /* adfile.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BF42DE13E2500349FD5 /* adfile.c */; };
 		F01A4CE52DE13E2500349FD5 /* utdebug.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CA32DE13E2500349FD5 /* utdebug.c */; };
 		F01A4CE62DE13E2500349FD5 /* utdelete.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CA52DE13E2500349FD5 /* utdelete.c */; };
 		F01A4CE72DE13E2500349FD5 /* dbtest.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C072DE13E2500349FD5 /* dbtest.c */; };
@@ -80,7 +79,6 @@
 		F01A4D2E2DE13E2500349FD5 /* exconcat.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C382DE13E2500349FD5 /* exconcat.c */; };
 		F01A4D2F2DE13E2500349FD5 /* evgpeblk.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C2B2DE13E2500349FD5 /* evgpeblk.c */; };
 		F01A4D302DE13E2500349FD5 /* utaddress.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C9B2DE13E2500349FD5 /* utaddress.c */; };
-		F01A4D312DE13E2500349FD5 /* acfileio.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BF22DE13E2500349FD5 /* acfileio.c */; };
 		F01A4D322DE13E2500349FD5 /* dbdisply.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BFE2DE13E2500349FD5 /* dbdisply.c */; };
 		F01A4D332DE13E2500349FD5 /* evgpeutil.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C2D2DE13E2500349FD5 /* evgpeutil.c */; };
 		F01A4D342DE13E2500349FD5 /* utascii.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C9D2DE13E2500349FD5 /* utascii.c */; };
@@ -98,7 +96,6 @@
 		F01A4D432DE13E2500349FD5 /* utlock.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CAD2DE13E2500349FD5 /* utlock.c */; };
 		F01A4D442DE13E2500349FD5 /* tbxfroot.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C992DE13E2500349FD5 /* tbxfroot.c */; };
 		F01A4D452DE13E2500349FD5 /* nsxfeval.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C722DE13E2500349FD5 /* nsxfeval.c */; };
-		F01A4D462DE13E2500349FD5 /* cmfsize.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BFB2DE13E2500349FD5 /* cmfsize.c */; };
 		F01A4D472DE13E2500349FD5 /* exstoren.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C4E2DE13E2500349FD5 /* exstoren.c */; };
 		F01A4D482DE13E2500349FD5 /* utxface.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CBF2DE13E2500349FD5 /* utxface.c */; };
 		F01A4D492DE13E2500349FD5 /* dsutils.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C212DE13E2500349FD5 /* dsutils.c */; };
@@ -1044,15 +1041,16 @@
 		8C084B842DC334D50010499B /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					8C084B8C2DC334D60010499B = {
 						CreatedOnToolsVersion = 16.3;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
 			buildConfigurationList = 8C084B872DC334D50010499B /* Build configuration list for PBXProject "PDACPIPlatform" */;
+			compatibilityVersion = "Xcode 2.4";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -1060,8 +1058,6 @@
 				Base,
 			);
 			mainGroup = 8C084B832DC334D50010499B;
-			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 8C084B8E2DC334D60010499B /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -1080,7 +1076,6 @@
 				F01A4ACA2DE12FE100349FD5 /* fadt_locator.cpp in Sources */,
 				F01A4ACF2DE12FE100349FD5 /* PDACPICPU.cpp in Sources */,
 				F01A4BAA2DE139BD00349FD5 /* AcpiOsLayer.cpp in Sources */,
-				F01A4CE42DE13E2500349FD5 /* adfile.c in Sources */,
 				F01A4CE52DE13E2500349FD5 /* utdebug.c in Sources */,
 				F01A4CE62DE13E2500349FD5 /* utdelete.c in Sources */,
 				F01A4CE72DE13E2500349FD5 /* dbtest.c in Sources */,
@@ -1146,7 +1141,6 @@
 				F01A4D2E2DE13E2500349FD5 /* exconcat.c in Sources */,
 				F01A4D2F2DE13E2500349FD5 /* evgpeblk.c in Sources */,
 				F01A4D302DE13E2500349FD5 /* utaddress.c in Sources */,
-				F01A4D312DE13E2500349FD5 /* acfileio.c in Sources */,
 				F01A4D322DE13E2500349FD5 /* dbdisply.c in Sources */,
 				F01A4D332DE13E2500349FD5 /* evgpeutil.c in Sources */,
 				F01A4D342DE13E2500349FD5 /* utascii.c in Sources */,
@@ -1164,7 +1158,6 @@
 				F01A4D432DE13E2500349FD5 /* utlock.c in Sources */,
 				F01A4D442DE13E2500349FD5 /* tbxfroot.c in Sources */,
 				F01A4D452DE13E2500349FD5 /* nsxfeval.c in Sources */,
-				F01A4D462DE13E2500349FD5 /* cmfsize.c in Sources */,
 				F01A4D472DE13E2500349FD5 /* exstoren.c in Sources */,
 				F01A4D482DE13E2500349FD5 /* utxface.c in Sources */,
 				F01A4D492DE13E2500349FD5 /* dsutils.c in Sources */,
@@ -1306,6 +1299,7 @@
 				MODULE_START = PDACPIPlatform_start;
 				MODULE_STOP = PDACPIPlatform_stop;
 				MODULE_VERSION = 1.0.0d1;
+				OTHER_CFLAGS = "-Wno-implicit-conversion";
 				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPlatform;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUN_CLANG_STATIC_ANALYZER = YES;
@@ -1334,6 +1328,7 @@
 				MODULE_START = PDACPIPlatform_start;
 				MODULE_STOP = PDACPIPlatform_stop;
 				MODULE_VERSION = 1.0.0d1;
+				OTHER_CFLAGS = "-Wno-implicit-conversion";
 				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPlatform;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUN_CLANG_STATIC_ANALYZER = YES;

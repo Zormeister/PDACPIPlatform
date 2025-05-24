@@ -40,16 +40,22 @@
 
 class PDACPIPlatformExpert : public IOACPIPlatformExpert {
     OSDeclareDefaultStructors(PDACPIPlatformExpert);
-    
+
+public:
     /* IOService overrides */
     virtual bool start(IOService *provider) override;
     virtual void stop(IOService *provider) override;
     
     /* IOACPIPlatformExpert overrides */
-    
+    virtual const OSData *getACPITableData(const char *name, UInt32 TableIndex) override;
+
     /* internal functions */
 private:
     bool initializeACPICA(void);
+    void performACPIPowerOff(void);
+    
+private:
+    
 };
 
 #endif

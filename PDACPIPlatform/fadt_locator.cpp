@@ -35,7 +35,7 @@
 
 #include "acpica/acpi.h"
 
-static ACPI_TABLE_FADT* gFadt = nullptr;
+static ACPI_TABLE_FADT* gFadt = NULL;
 
 extern "C" ACPI_TABLE_FADT* getFADT()
 {

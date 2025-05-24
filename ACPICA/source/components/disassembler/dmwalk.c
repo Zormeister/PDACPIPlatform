@@ -151,6 +151,7 @@
 
 #include "acpi.h"
 #include "accommon.h"
+#include "acdisasm.h"
 #include "acparser.h"
 #include "amlcode.h"
 #include "acdebug.h"

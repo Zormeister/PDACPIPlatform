@@ -153,3 +153,14 @@ ACPI_THREAD_ID
 AcpiOsGetThreadId(void) {
     return thread_tid(current_thread()); /* I think? */
 }
+
+ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock) {
+    IOSimpleLock *lck = IOSimpleLockAlloc();
+    if (!lck) {
+        return AE_NO_MEMORY;
+    }
+    
+    *Lock = lck;
+    
+    return AE_OK;
+};

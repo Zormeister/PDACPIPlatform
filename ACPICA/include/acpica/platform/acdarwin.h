@@ -47,22 +47,64 @@
 #define ACPI_USE_GPE_POLLING
 
 #define ACPI_SEMAPHORE semaphore_t
-#define ACPI_LOCK IOLock *
+#define ACPI_SPINLOCK IOSimpleLock *
 
-#define ACPI_MSG_ERROR          KERN_ERR "ACPI Error: "
-#define ACPI_MSG_EXCEPTION      KERN_ERR "ACPI Exception: "
-#define ACPI_MSG_WARNING        KERN_WARNING "ACPI Warning: "
-#define ACPI_MSG_INFO           KERN_INFO "ACPI: "
+#define ACPI_USE_SYSTEM_CLIBRARY
 
-#define ACPI_MSG_BIOS_ERROR     KERN_ERR "ACPI BIOS Error (bug): "
-#define ACPI_MSG_BIOS_WARNING   KERN_WARNING "ACPI BIOS Warning (bug): "
+#define ACPI_MSG_ERROR          "ACPI Error: "
+#define ACPI_MSG_EXCEPTION      "ACPI Exception: "
+#define ACPI_MSG_WARNING        "ACPI Warning: "
+#define ACPI_MSG_INFO           "ACPI: "
+
+#define ACPI_MSG_BIOS_ERROR     "ACPI BIOS Error (bug): "
+#define ACPI_MSG_BIOS_WARNING   "ACPI BIOS Warning (bug): "
 
 #include <stdint.h>
+
+#define ACPI_DEBUG_OUTPUT
+#define ACPI_DISASSEMBLER
+#define ACPI_DEBUGGER
+
+#define vsnprintf AcpiUtVsnprintf
+#define snprintf AcpiUtSnprintf
 
 #if __LP64__
 #define ACPI_MACHINE_WIDTH 64
 #else
 #define ACPI_MACHINE_WIDTH 32
+#endif
+
+#define stderr NULL
+#define stdout NULL
+
+#define EOF -1
+
+extern const unsigned char AcpiGbl_Ctypes[];
+
+#define _ACPI_XA     0x00    /* extra alphabetic - not supported */
+#define _ACPI_XS     0x40    /* extra space */
+#define _ACPI_BB     0x00    /* BEL, BS, etc. - not supported */
+#define _ACPI_CN     0x20    /* CR, FF, HT, NL, VT */
+#define _ACPI_DI     0x04    /* '0'-'9' */
+#define _ACPI_LO     0x02    /* 'a'-'z' */
+#define _ACPI_PU     0x10    /* punctuation */
+#define _ACPI_SP     0x08    /* space, tab, CR, LF, VT, FF */
+#define _ACPI_UP     0x01    /* 'A'-'Z' */
+#define _ACPI_XD     0x80    /* '0'-'9', 'A'-'F', 'a'-'f' */
+
+#define isdigit(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_DI))
+#define isspace(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_SP))
+#define isxdigit(c) (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_XD))
+#define isupper(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_UP))
+#define islower(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO))
+#define isprint(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP | _ACPI_DI | _ACPI_XS | _ACPI_PU))
+#define isalpha(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP))
+
+// HACK: kernel string.h is borked on at *least* 10.15.
+#if defined(strcpy) && __has_builtin(__builtin___strcpy_chk)
+#undef strcpy
+
+#define strcpy(dest, src) __builtin___strcpy_chk(dest, src, XNU_BOS(dest, 1))
 #endif
 
 #endif
