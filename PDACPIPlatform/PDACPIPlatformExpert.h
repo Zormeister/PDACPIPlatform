@@ -33,19 +33,23 @@
 *
 */
 
-#include "../include/acpica/acpi.h"
-#include "../include/acpi_fadt.h"
+#ifndef _PDACPI_PLATFORMEXPERT_H_
+#define _PDACPI_PLATFORMEXPERT_H_
 
-static ACPI_TABLE_FADT* gFadt = nullptr;
+#include <IOKit/acpi/IOACPIPlatformExpert.h>
 
-extern "C" ACPI_TABLE_FADT* getFADT()
-{
-    if (gFadt)
-        return gFadt;
+class PDACPIPlatformExpert : public IOACPIPlatformExpert {
+    OSDeclareDefaultStructors(PDACPIPlatformExpert);
+    
+    /* IOService overrides */
+    virtual bool start(IOService *provider) override;
+    virtual void stop(IOService *provider) override;
+    
+    /* IOACPIPlatformExpert overrides */
+    
+    /* internal functions */
+private:
+    bool initializeACPICA(void);
+};
 
-    ACPI_TABLE_HEADER* header;
-    if (ACPI_SUCCESS(AcpiGetTable("FACP", 1, &header)))
-        gFadt = (ACPI_TABLE_FADT*)header;
-
-    return gFadt;
-}
+#endif

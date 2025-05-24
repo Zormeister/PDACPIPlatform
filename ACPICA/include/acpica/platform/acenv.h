@@ -309,7 +309,12 @@
 #include "aclinux.h"
 
 #elif defined(_APPLE) || defined(__APPLE__)
+
+#if KERNEL
+#include "acdarwin.h"
+#else
 #include "acmacosx.h"
+#endif
 
 #elif defined(__DragonFly__)
 #include "acdragonfly.h"

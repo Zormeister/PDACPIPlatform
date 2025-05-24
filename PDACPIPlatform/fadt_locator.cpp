@@ -33,30 +33,18 @@
 *
 */
 
-#ifndef _ACPI_FADT_H
-#define _ACPI_FADT_H
+#include "acpica/acpi.h"
 
-#include <stdint.h>
-#include "acpi.h"
+static ACPI_TABLE_FADT* gFadt = nullptr;
 
-typedef struct {
-    ACPI_TABLE_HEADER Header;
-    uint32_t FirmwareCtrl;
-    uint32_t Dsdt;
-    uint8_t Reserved1;
-    uint8_t PreferredPMProfile;
-    uint16_t SCIInterrupt;
-    uint32_t SMICommand;
-    uint8_t AcpiEnable;
-    uint8_t AcpiDisable;
-    uint8_t S4BIOSReq;
-    uint8_t PStateControl;
-    uint32_t PM1aEvtBlock;
-    uint32_t PM1bEvtBlock;
-    uint32_t PM1aCntBlock;
-    uint32_t PM1bCntBlock;
-    uint64_t X_FirmwareCtrl;
-    uint64_t X_Dsdt;
-} __attribute__((packed)) ACPI_TABLE_FADT;
+extern "C" ACPI_TABLE_FADT* getFADT()
+{
+    if (gFadt)
+        return gFadt;
 
-#endif
+    ACPI_TABLE_HEADER* header;
+    if (ACPI_SUCCESS(AcpiGetTable("FACP", 1, &header)))
+        gFadt = (ACPI_TABLE_FADT*)header;
+
+    return gFadt;
+}

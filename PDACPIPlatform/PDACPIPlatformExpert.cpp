@@ -33,24 +33,15 @@
 *
 */
 
-#include "../include/PDACPIPlatformExpert.h"
+#include "PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
-// #include "acpi_fadt.h" // No longer directly needed, ACPICA handles FADT access.
-#include "../include/acpica/acpi.h" // For ACPICA APIs
-#include <IOKit/pwr_mgt/IOPMrootDomain.h> // For IOPMrootDomain
+#include "acpica/acpi.h" // For ACPICA APIs
+#include <IOKit/pwr_mgt/IOPMrootDomain.h>
 
-#define super IOService
-OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOService)
+#define super IOACPIPlatformExpert
+OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
 
-bool PDACPIPlatformExpert::start(IOService* provider)
-{
-    IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log
-
-    if (!super::start(provider)) {
-        IOLog("PDACPIPlatformExpert::start - super::start failed\n");
-        return false;
-    }
-
+bool PDACPIPlatformExpert::initializeACPICA() {
     // Initialize ACPICA OS Layer
     ACPI_STATUS status = AcpiOsInitialize();
     if (ACPI_FAILURE(status)) {
@@ -96,6 +87,18 @@ bool PDACPIPlatformExpert::start(IOService* provider)
         AcpiTerminate(); // Cleanup
         return false;
     }
+}
+
+bool PDACPIPlatformExpert::start(IOService* provider)
+{
+    IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log
+
+    if (!super::start(provider)) {
+        IOLog("PDACPIPlatformExpert::start - super::start failed\n");
+        return false;
+    }
+
+   
 
     IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
 

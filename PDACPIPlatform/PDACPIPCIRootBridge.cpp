@@ -28,35 +28,10 @@
 *
 * @PUREDARWIN_LICENSE_HEADER_END@
 *
-* PDACPIPlatform Open Source Version of Apples AppleACPIPlatform
+* PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
 * Created by github.com/csekel (InSaneDarwin)
 *
+* This specific file was created by Zormeister
 */
 
-#ifndef _PDACPI_CPU_H
-#define _PDACPI_CPU_H
-
-#include <IOKit/IOService.h>
-#include <libkern/OSArray.h>
-#include "acpi.h"
-
-class PDACPICPU : public IOService
-{
-    OSDeclareDefaultStructors(PDACPICPU)
-
-private:
-    uint32_t currentPState;
-    OSArray* pStateArray;
-    OSArray* cStateArray;
-
-public:
-    virtual bool start(IOService* provider) override;
-    void enterC1();
-    void enterCState(uint32_t cstateType);
-    bool switchToPState(uint32_t index);
-    uint32_t getBestCStateForLatency(uint32_t maxAllowedLatencyUs);
-    OSArray* getPStateArray() const { return pStateArray; }
-    OSArray* getCStateArray() const { return cStateArray; }
-};
-
-#endif
+#include "PDACPIPCIRootBridge.h"

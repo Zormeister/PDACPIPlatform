@@ -28,66 +28,21 @@
 *
 * @PUREDARWIN_LICENSE_HEADER_END@
 *
-* PDACPIPlatform Open Source Version of Apples AppleACPIPlatform
+* PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
 * Created by github.com/csekel (InSaneDarwin)
 *
+* This specific file was created by Zormeister
 */
 
-#include "../include/PDACPICPU.h"
-#include <IOKit/IOLib.h>
+#ifndef _PDACPI_PCIROOTBRIDGE_H
+#define _PDACPI_PCIROOTBRIDGE_H
 
-#define super IOService
-OSDefineMetaClassAndStructors(PDACPICPU, IOService)
+#include <IOKit/pci/IOPCIBridge.h>
 
-bool PDACPICPU::start(IOService* provider)
-{
-    IOLog("PDACPICPU::start\n");
-    if (!super::start(provider))
-        return false;
+class PDACPIPCIRootBridge : public IOPCIBridge {
+    OSDeclareDefaultStructors(PDACPIPCIRootBridge);
+    
+    /* TODO: this. */
+};
 
-    currentPState = 0;
-    pStateArray = OSArray::withCapacity(4);
-    cStateArray = OSArray::withCapacity(4);
-
-    // Simulate C/P states for now
-    // In future, parse _PSS/_CST ACPI objects
-
-    setProperty("PStateCount", (uint64_t)pStateArray->getCount(), 64);
-    setProperty("CStateCount", (uint64_t)cStateArray->getCount(), 64);
-
-    registerService();
-    return true;
-}
-
-void PDACPICPU::enterC1()
-{
-    asm volatile("hlt");
-}
-
-void PDACPICPU::enterCState(uint32_t cstateType)
-{
-    switch (cstateType)
-    {
-        case 1:
-            enterC1();
-            break;
-        default:
-            break;
-    }
-}
-
-bool PDACPICPU::switchToPState(uint32_t index)
-{
-    if (index == currentPState)
-        return true;
-
-    IOLog("PDACPICPU: Switching to P-State %u\n", index);
-    currentPState = index;
-    return true;
-}
-
-uint32_t PDACPICPU::getBestCStateForLatency(uint32_t maxAllowedLatencyUs)
-{
-    // Simulated: always return C1
-    return 1;
-}
+#endif /* _PDACPI_PCIROOTBRIDGE_H */
