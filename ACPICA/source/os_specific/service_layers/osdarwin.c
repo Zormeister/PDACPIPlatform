@@ -42,6 +42,7 @@
 #include <mach/machine.h>
 #include <architecture/i386/pio.h>
 #include <IOKit/IOLib.h>
+#include <mach/thread_status.h>
 
 /* ACPI OS Layer implementations because yes */
 #define _COMPONENT ACPI_OS_SERVICES
@@ -53,17 +54,26 @@ struct _memory_tag {
     ACPI_SIZE size;
 };
 
-/* External functions - see source/PDACPIPlatform/AcpiOsLayer.cpp */
+/* External functions - see PDACPIPlatform/AcpiOsLayer.cpp */
 extern void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS, ACPI_SIZE);
 extern void AcpiOsExtUnmapMemory(void *);
 extern ACPI_STATUS AcpiOsExtInitialize(void);
 extern ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 
 ACPI_STATUS AcpiOsInitialize(void) {
-    return AcpiOsExtInitialize();
+    return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
 }
 
 #pragma mark Memory-related services
+
+/* This is an XNU private API. I'd much rather a public function but that seems impossible. */
+extern vm_offset_t ml_vtophys(vm_offset_t);
+
+ACPI_STATUS AcpiOsGetPhysicalAddress(void *LogicalAddress, ACPI_PHYSICAL_ADDRESS *PhysicalAddress) {
+    IOVirtualAddress va = (IOVirtualAddress)LogicalAddress;
+    *PhysicalAddress = ml_vtophys(va); /* i sure do hope this is compatible */
+    return AE_OK;
+}
 
 void *
 AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS Where, ACPI_SIZE Length) {
@@ -97,6 +107,79 @@ AcpiOsFree(void *p) {
     }
 }
 
+/* ZORMEISTER: me is kernel. i can write and read as i want. */
+BOOLEAN AcpiOsReadable(void *Memory, ACPI_SIZE Length) { return true; }
+BOOLEAN AcpiOsWriteable(void *Memory, ACPI_SIZE Length) { return true; }
+
+/* ZORMEISTER: import KPIs because otherwise this won't work. */
+extern unsigned int ml_phys_read_byte(vm_offset_t paddr);
+extern unsigned int ml_phys_read_byte_64(addr64_t paddr);
+extern unsigned int ml_phys_read_half(vm_offset_t paddr);
+extern unsigned int ml_phys_read_half_64(addr64_t paddr);
+extern unsigned int ml_phys_read_word(vm_offset_t paddr);
+extern unsigned int ml_phys_read_word_64(addr64_t paddr);
+extern unsigned long long ml_phys_read_double(vm_offset_t paddr);
+extern unsigned long long ml_phys_read_double_64(addr64_t paddr);
+
+/*
+ * ZORMEISTER:
+ * mind you this is my local machine using the following:
+ *
+ * SDK: MacOSX15.4.sdk
+ * Xcode Version: 16.3 build 16E140
+ * Apple Clang version: clang-1700.0.13.3
+ *
+ * i need to establish a build server for my projects
+ *
+ */
+
+ACPI_STATUS
+AcpiOsReadMemory(
+    ACPI_PHYSICAL_ADDRESS   Address,
+    UINT64                  *Value,
+    UINT32                  Width) {
+    
+    switch (Width) {
+        case 8:
+#if __LP64__
+            *Value = ml_phys_read_byte_64(Address);
+#else
+            *Value = ml_phys_read_byte(Address);
+#endif
+            return AE_OK;
+        case 16:
+#if __LP64__
+            *Value = ml_phys_read_half_64(Address);
+#else
+            *Value = ml_phys_read_half(Address);
+#endif
+            return AE_OK;
+        case 32:
+#if __LP64__
+            *Value = ml_phys_read_word_64(Address);
+#else
+            *Value = ml_phys_read_word(Address);
+#endif
+            return AE_OK;
+        case 64:
+#if __LP64__
+            *Value = ml_phys_read_double_64(Address);
+#else
+            *Value = ml_phys_read_double(Address);
+#endif
+        default:
+            AcpiOsPrintf("ACPI: bad width value\n");
+            return AE_ERROR;
+            break;
+    }
+}
+
+extern void ml_phys_write_byte(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_byte_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_half(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_half_64(addr64_t paddr, unsigned int data);
+
+
 #pragma mark OS time related functions
 
 void AcpiOsSleep(UINT64 ms) {
@@ -109,51 +192,6 @@ void AcpiOsStall(UINT32 us) {
 
 #pragma mark Lock functions
 
-#pragma mark OS memory functions
-
-/* import KPIs because otherwise this won't work. */
-extern unsigned int ml_phys_read_byte(vm_offset_t paddr);
-extern unsigned int ml_phys_read_byte_64(addr64_t paddr);
-extern unsigned int ml_phys_read_half(vm_offset_t paddr);
-extern unsigned int ml_phys_read_half_64(addr64_t paddr);
-extern unsigned int ml_phys_read_word(vm_offset_t paddr);
-extern unsigned int ml_phys_read_word_64(addr64_t paddr);
-extern unsigned long long ml_phys_read_double(vm_offset_t paddr);
-extern unsigned long long ml_phys_read_double_64(addr64_t paddr);
-
-ACPI_STATUS
-AcpiOsReadMemory (
-    ACPI_PHYSICAL_ADDRESS   Address,
-    UINT64                  *Value,
-    UINT32                  Width) {
-    
-    switch (Width) {
-        case 8:
-            *Value = ml_phys_read_byte_64(Address);
-            return AE_OK;
-        case 16:
-            *Value = ml_phys_read_half_64(Address);
-            return AE_OK;
-        case 32:
-            *Value = ml_phys_read_word_64(Address);
-            return AE_OK;
-        case 64:
-            *Value = ml_phys_read_double_64(Address);
-            return AE_OK;
-        default:
-            AcpiOsPrintf("ACPI: bad width value\n");
-            return AE_ERROR;
-            break;
-    }
-}
-
-#pragma mark thread related stuff
-
-ACPI_THREAD_ID
-AcpiOsGetThreadId(void) {
-    return thread_tid(current_thread()); /* I think? */
-}
-
 ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock) {
     IOSimpleLock *lck = IOSimpleLockAlloc();
     if (!lck) {
@@ -164,3 +202,78 @@ ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock) {
     
     return AE_OK;
 };
+
+void AcpiOsDeleteLock(ACPI_SPINLOCK Lock) {
+    IOSimpleLockFree(Lock);
+}
+
+
+/* 'May be called from interrupt handlers, GPE handlers, and Fixed event handlers.' */
+/* Fun way of saying I should disable interrupts until the lock is released. */
+ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Lock) {
+    ml_set_interrupts_enabled(false);
+    IOSimpleLockLock(Lock);
+    return 0;
+}
+
+void AcpiOsReleaseLock(ACPI_SPINLOCK Lock, ACPI_CPU_FLAGS Flags) {
+    IOSimpleLockUnlock(Lock);
+    ml_set_interrupts_enabled(true);
+}
+
+#pragma mark thread related stuff
+
+ACPI_THREAD_ID
+AcpiOsGetThreadId(void) {
+    return thread_tid(current_thread()); /* I think? */
+}
+
+ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context) {
+    /* ok what? 'Schedule a procedure for deferred execution.' what the shit does that mean??? */
+    return AE_OK;
+}
+
+
+#pragma mark Override functions - they do nothing.
+
+ACPI_STATUS AcpiOsPredefinedOverride(const ACPI_PREDEFINED_NAMES *PredefinedObject, ACPI_STRING *NewValue) {
+    *NewValue = NULL;
+    return AE_OK;
+}
+
+ACPI_STATUS AcpiOsTableOverride(ACPI_TABLE_HEADER *ExistingTable, ACPI_TABLE_HEADER **NewTable) {
+    *NewTable = NULL;
+    return AE_OK;
+}
+
+#pragma mark Misc. OSL services
+
+ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info) {
+    switch (Function) {
+        case ACPI_SIGNAL_BREAKPOINT: {
+            if (Info) {
+                char *breakpt = (char *)Info;
+                AcpiOsPrintf("ACPI: recieved breakpoint signal: %s", breakpt);
+            } else {
+                AcpiOsPrintf("ACPI: recieved breakpoint signal");
+            }
+            break;
+        }
+
+        case ACPI_SIGNAL_FATAL: {
+            if (Info) {
+                ACPI_SIGNAL_FATAL_INFO *ftl = (ACPI_SIGNAL_FATAL_INFO *)Info;
+                AcpiOsPrintf("ACPI: recieved AML fatal signal, type: %d, code: %d, arg: %d\n", ftl->Type, ftl->Code, ftl->Argument);
+            } else {
+                AcpiOsPrintf("ACPI: recieved AML fatal signal");
+            }
+            break;
+        }
+
+        default: {
+            AcpiOsPrintf("ACPI: unknown signal recieved (%d)\n", Function);
+            break;
+        }
+    }
+    return AE_OK;
+}

@@ -40,9 +40,12 @@
 #include <IOKit/IOMemoryDescriptor.h>
 #include <IOKit/IORegistryEntry.h>
 #include <IOKit/IODeviceTreeSupport.h>
+#include <IOKit/IOCommand.h>
+#include <IOKit/IOCommandGate.h>
 #include <libkern/c++/OSSet.h>
 #include <libkern/c++/OSCollectionIterator.h>
 #include <pexpert/i386/efi.h>
+#include <pexpert/i386/boot.h>
 
 /* for some reason Xcode has disabled any and all forms of auto completion. */
 
@@ -51,16 +54,36 @@ extern "C" void AcpiOsExtUnmapMemory(void *);
 extern "C" ACPI_STATUS AcpiOsExtInitialize(void);
 extern "C" ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 
+IOWorkLoop *gAcpiOsThreadWorkLoop;
+//IOCommandGate *gAcpiOsThreadCommandGate;
+
+/* PCI config space stuff. */
+ACPI_MCFG_ALLOCATION gPCIFromPE;
+ACPI_MCFG_ALLOCATION *gPCIDataFromMCFG;
+size_t gPCIMCFGEntryCount;
+
 IOLock *gAcpiOsExtMemoryMapLock;
 OSSet *gAcpiOsExtMemoryMapSet;
 OSCollectionIterator *gAcpiOsExtMemoryMapIterator;
 
-/* Will have to access PE boot args to get the MCFG table data. */
 ACPI_STATUS AcpiOsExtInitialize(void) {
     /* Initialize local resources. */
     gAcpiOsExtMemoryMapLock = IOLockAlloc();
     gAcpiOsExtMemoryMapSet = OSSet::withCapacity(4); /* OSSet's can expand if need be, right? */
     gAcpiOsExtMemoryMapIterator = OSCollectionIterator::withCollection(gAcpiOsExtMemoryMapSet);
+    
+    /* init the execution system */
+    gAcpiOsThreadWorkLoop = IOWorkLoop::workLoop();
+    /* TODO: private SDK */
+    //gAcpiOsThreadCommandGate = IOCommandGate::commandGate(NULL);
+    //gAcpiOsThreadCommandGate->setWorkLoop(gAcpiOsThreadWorkLoop);
+    
+    /* Fetch MCFG data from PE boot args, at least until PlatformExpert updates the data. */
+    boot_args *args = (boot_args *)PE_state.bootArgs;
+    gPCIFromPE.Address = args->pciConfigSpaceBaseAddress;
+    gPCIFromPE.PciSegment = 0;
+    gPCIFromPE.StartBusNumber = args->pciConfigSpaceStartBusNumber;
+    gPCIFromPE.EndBusNumber = args->pciConfigSpaceEndBusNumber;
     return AE_OK;
 }
 

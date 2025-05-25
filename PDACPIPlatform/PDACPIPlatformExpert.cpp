@@ -88,6 +88,27 @@ bool PDACPIPlatformExpert::initializeACPICA() {
     }
 }
 
+bool PDACPIPlatformExpert::fetchPCIData() {
+    /* Obtain PCI data from MCFG table */
+    ACPI_STATUS status = AE_OK;
+    ACPI_TABLE_HEADER *TableHeader = NULL;
+    ACPI_TABLE_MCFG *mcfgTable = NULL;
+    
+    status = AcpiGetTable(ACPI_SIG_MCFG, 0, &TableHeader);
+    if (ACPI_FAILURE(status)) {
+        IOLog("ACPI: Failed to get MCFG table from ACPICA (%s)\n", AcpiFormatException(status));
+        return false;
+    }
+    
+    mcfgTable = (ACPI_TABLE_MCFG *)TableHeader;
+    /* TODO: finish this */
+}
+
+
+bool PDACPIPlatformExpert::catalogACPITables() {
+    return true;
+}
+
 bool PDACPIPlatformExpert::start(IOService* provider)
 {
     IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log

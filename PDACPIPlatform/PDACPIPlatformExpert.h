@@ -53,9 +53,11 @@ public:
 private:
     bool initializeACPICA(void);
     void performACPIPowerOff(void);
+    bool catalogACPITables(void);
+    bool fetchPCIData(void);
     
 private:
-    
+    OSDictionary *m_tableDict;
 };
 
 #endif
