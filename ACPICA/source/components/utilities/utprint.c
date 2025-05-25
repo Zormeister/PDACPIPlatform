@@ -538,7 +538,7 @@ AcpiUtFormatNumber (
  ******************************************************************************/
 
 int
-vsnprintf (
+AcpiUtVsnprintf (
     char                    *String,
     ACPI_SIZE               Size,
     const char              *Format,
@@ -837,7 +837,7 @@ vsnprintf (
  ******************************************************************************/
 
 int
-snprintf (
+AcpiUtSnprintf (
     char                    *String,
     ACPI_SIZE               Size,
     const char              *Format,
@@ -869,7 +869,7 @@ snprintf (
  ******************************************************************************/
 
 int
-sprintf (
+AcpiUtSprintf (
     char                    *String,
     const char              *Format,
     ...)

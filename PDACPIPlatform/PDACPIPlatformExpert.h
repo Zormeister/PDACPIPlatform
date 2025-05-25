@@ -37,6 +37,7 @@
 #define _PDACPI_PLATFORMEXPERT_H_
 
 #include <IOKit/acpi/IOACPIPlatformExpert.h>
+#include <IOKit/rtc/IORTCController.h>
 
 class PDACPIPlatformExpert : public IOACPIPlatformExpert {
     OSDeclareDefaultStructors(PDACPIPlatformExpert);
@@ -46,8 +47,23 @@ public:
     virtual bool start(IOService *provider) override;
     virtual void stop(IOService *provider) override;
     
+    virtual OSObject *copyProperty(const char *property) const override;
+    
     /* IOACPIPlatformExpert overrides */
     virtual const OSData *getACPITableData(const char *name, UInt32 TableIndex) override;
+    
+    virtual IOReturn registerAddressSpaceHandler(
+                                   IOACPIPlatformDevice *device,
+                                   IOACPIAddressSpaceID spaceID,
+                                   IOACPIAddressSpaceHandler handler,
+                                   void * context,
+                                   IOOptionBits options) override;
+    
+    virtual void unregisterAddressSpaceHandler(
+                                   IOACPIPlatformDevice *device,
+                                   IOACPIAddressSpaceID spaceID,
+                                   IOACPIAddressSpaceHandler handler,
+                                   IOOptionBits options) override;
 
     /* internal functions */
 private:
@@ -55,9 +71,18 @@ private:
     void performACPIPowerOff(void);
     bool catalogACPITables(void);
     bool fetchPCIData(void);
+    UInt32 getACPITableCount(const char *name);
     
 private:
     OSDictionary *m_tableDict;
+    
+    /* PIO == ACPIPE, MMIO == ACPIPE, PCI CFG == ACPIPE, we have handlers for all of these. */
+    IOACPIAddressSpaceHandler m_ecSpaceHandler;
+    void *m_ecSpaceContext;
+    IOACPIAddressSpaceHandler m_smbusSpaceHandler;
+    void *m_smbusSpaceContext;
+    IORTC *m_localRTC;
+    IOLock *m_rtcLock;
 };
 
 #endif

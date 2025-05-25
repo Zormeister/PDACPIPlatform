@@ -28,56 +28,22 @@
 *
 * @PUREDARWIN_LICENSE_HEADER_END@
 *
-* PDACPIPlatform Open Source Version of Apples AppleACPIPlatform
+* PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
 * Created by github.com/csekel (InSaneDarwin)
 *
+* This specific file was created by Zormeister
 */
 
-#include "PDACPICPU.h"
-#include <IOKit/IOLib.h>
+#ifndef _PDACPI_RTC_H
+#define _PDACPI_RTC_H
 
-#define super IOService
-OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
+#include <IOKit/rtc/IORTCController.h>
 
-bool PDACPICPU::start(IOService* provider)
-{
-    IOLog("PDACPICPU::start\n");
-    if (!super::start(provider))
-        return false;
-
-    registerService();
-    return true;
+class PDACPIRTC : public IORTC {
+    OSDeclareDefaultStructors(PDACPIRTC);
+    
+    /* IOService overrides */
+    virtual bool start(IOService *provider);
 }
 
-void PDACPICPU::enterC1()
-{
-    asm volatile("hlt");
-}
-
-void PDACPICPU::enterCState(uint32_t cstateType)
-{
-    switch (cstateType)
-    {
-        case 1:
-            enterC1();
-            break;
-        default:
-            break;
-    }
-}
-
-bool PDACPICPU::switchToPState(uint32_t index)
-{
-    if (index == currentPState)
-        return true;
-
-    IOLog("PDACPICPU: Switching to P-State %u\n", index);
-    currentPState = index;
-    return true;
-}
-
-uint32_t PDACPICPU::getBestCStateForLatency(uint32_t maxAllowedLatencyUs)
-{
-    // Simulated: always return C1
-    return 1;
-}
+#endif /* _PDACPI_RTC_H */

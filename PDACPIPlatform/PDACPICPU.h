@@ -40,7 +40,15 @@
 #include <libkern/c++/OSArray.h>
 #include "acpi.h"
 
-class PDACPICPU : public IOService
+#if __has_include(<IOKit/IOCPU.h>)
+#include <IOKit/IOCPU.h>
+#else
+typedef void (*ipi_handler_t)(void);
+
+#include "ExternalHeaders/IOKit/IOCPU.h"
+#endif
+
+class PDACPICPU : public IOCPU
 {
     OSDeclareDefaultStructors(PDACPICPU)
 
@@ -51,6 +59,9 @@ private:
 
 public:
     virtual bool start(IOService* provider) override;
+    
+    virtual kern_return_t startCPU(vm_offset_t start_paddr, vm_offset_t arg_paddr) override;
+    
     void enterC1();
     void enterCState(uint32_t cstateType);
     bool switchToPState(uint32_t index);

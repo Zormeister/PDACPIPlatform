@@ -36,19 +36,17 @@
 #include "PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
 #include "acpica/acpi.h" // For ACPICA APIs
+#include "acpica/acstruct.h"
+#include "acpica/aclocal.h"
+#include "acpica/acglobal.h"
 
 #define super IOACPIPlatformExpert
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
 
 bool PDACPIPlatformExpert::initializeACPICA() {
-    // Initialize ACPICA OS Layer
-    ACPI_STATUS status = AcpiOsInitialize();
-    if (ACPI_FAILURE(status)) {
-        IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiOsInitialize failed with status %s\n", AcpiFormatException(status));
-        return false;
-    }
+    /* No need to init OSL seperately. AcpiInitializeSubsystem calls it as one of it's first calls. */
 
-    status = AcpiInitializeSubsystem();
+    ACPI_STATUS status = AcpiInitializeSubsystem();
     if (ACPI_FAILURE(status)) {
         IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiInitializeSubsystem failed with status %s\n", AcpiFormatException(status));
         AcpiTerminate(); // Cleanup
@@ -104,10 +102,34 @@ bool PDACPIPlatformExpert::fetchPCIData() {
     /* TODO: finish this */
 }
 
+/*
+UInt32 PDACPIPlatformExpert::getACPITableCount(const char *name) {
+    UInt32 cnt = 0;
+    while (cnt++) {
+        ACPI_TABLE_HEADER *Tbl;
+        ACPI_STATUS stat = AcpiGetTable((char *)name, cnt, &Tbl);
+    }
+}
 
 bool PDACPIPlatformExpert::catalogACPITables() {
+    ACPI_TABLE_HEADER *Table;
+    UInt32 tables = AcpiGbl_RootTableList.CurrentTableCount;
+    m_tableDict = OSDictionary::withCapacity(tables + 1);
+    char name[32];
+    
+    for (UInt32 i = 0; i < tables; i++) {
+        AcpiGetTableByIndex(i, &Table);
+        // Now that we have our tables...
+        OSData *data = OSData::withBytesNoCopy(Table, Table->Length);
+        
+        if (m_tableDict->getObject(Table->Signature)) {
+            snprintf(name, 32, "%4.4s-%d", Table->Signature);
+        }
+    }
+    
     return true;
 }
+*/
 
 bool PDACPIPlatformExpert::start(IOService* provider)
 {
@@ -117,6 +139,10 @@ bool PDACPIPlatformExpert::start(IOService* provider)
         IOLog("PDACPIPlatformExpert::start - super::start failed\n");
         return false;
     }
+    
+    /* Respond to certain boot arguemnts */
+    PE_parse_boot_argn("acpi_layer", &AcpiDbgLayer, 4);
+    PE_parse_boot_argn("acpi_level", &AcpiDbgLevel, 4);
 
     IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
 
@@ -163,4 +189,49 @@ void PDACPIPlatformExpert::performACPIPowerOff()
 
     IOSleep(10000);
     while (1) asm volatile("hlt");
+}
+
+IOReturn PDACPIPlatformExpert::registerAddressSpaceHandler(IOACPIPlatformDevice *,
+                                                           IOACPIAddressSpaceID spaceID,
+                                                           IOACPIAddressSpaceHandler Handler,
+                                                           void *context, IOOptionBits options)
+{
+    /* We don't care about the specific device; we care about the handler itself */
+    switch (spaceID) {
+        case kIOACPIAddressSpaceIDEmbeddedController:
+            this->m_ecSpaceHandler = Handler;
+            this->m_ecSpaceContext = context;
+            IOLog("PDACPIPlatformExpert::%s: Registered handler for the EC address space\n", __PRETTY_FUNCTION__);
+            return kIOReturnSuccess;
+        case kIOACPIAddressSpaceIDSMBus:
+            this->m_smbusSpaceHandler = Handler;
+            this->m_smbusSpaceContext = context;
+            IOLog("PDACPIPlatformExpert::%s: Registered handler for the SMBus address space\n", __PRETTY_FUNCTION__);
+            return kIOReturnSuccess;
+        default:
+            IOLog("PDACPIPlatformExpert::%s: Invalid attempt at registering an address space handler\n", __PRETTY_FUNCTION__);
+            return kIOReturnInvalid;
+    }
+}
+
+void PDACPIPlatformExpert::unregisterAddressSpaceHandler(IOACPIPlatformDevice *,
+                                                         IOACPIAddressSpaceID spaceID,
+                                                         IOACPIAddressSpaceHandler,
+                                                         IOOptionBits) {
+    /* Remove the specified handlers */
+    switch (spaceID) {
+        case kIOACPIAddressSpaceIDEmbeddedController:
+            this->m_ecSpaceHandler = nullptr;
+            this->m_ecSpaceContext = nullptr;
+            IOLog("PDACPIPlatformExpert::%s: Removed handler for the EC address space\n", __PRETTY_FUNCTION__);
+            return;
+        case kIOACPIAddressSpaceIDSMBus:
+            this->m_smbusSpaceHandler = nullptr;
+            this->m_smbusSpaceContext = nullptr;
+            IOLog("PDACPIPlatformExpert::%s: Removed handler for the SMBus address space\n", __PRETTY_FUNCTION__);
+            return;
+        default:
+            IOLog("PDACPIPlatformExpert::%s: Invalid attempt at removing an address space handler\n", __PRETTY_FUNCTION__);
+            break;
+    }
 }

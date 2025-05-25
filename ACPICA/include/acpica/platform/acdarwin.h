@@ -65,9 +65,6 @@
 #define ACPI_DISASSEMBLER
 #define ACPI_DEBUGGER
 
-#define vsnprintf AcpiUtVsnprintf
-#define snprintf AcpiUtSnprintf
-
 #if __LP64__
 #define ACPI_MACHINE_WIDTH 64
 #else

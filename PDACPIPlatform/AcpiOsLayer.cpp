@@ -53,9 +53,10 @@ extern "C" void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS, ACPI_SIZE);
 extern "C" void AcpiOsExtUnmapMemory(void *);
 extern "C" ACPI_STATUS AcpiOsExtInitialize(void);
 extern "C" ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
+extern "C" ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
 
 IOWorkLoop *gAcpiOsThreadWorkLoop;
-//IOCommandGate *gAcpiOsThreadCommandGate;
+IOCommandGate *gAcpiOsThreadCommandGate;
 
 /* PCI config space stuff. */
 ACPI_MCFG_ALLOCATION gPCIFromPE;
@@ -66,17 +67,32 @@ IOLock *gAcpiOsExtMemoryMapLock;
 OSSet *gAcpiOsExtMemoryMapSet;
 OSCollectionIterator *gAcpiOsExtMemoryMapIterator;
 
+struct _iocmdq_callback_data {
+    ACPI_OSD_EXEC_CALLBACK Callback;
+    void *Context;
+};
+
+IOReturn AcpiOsThreadDispatch(OSObject *, void *field0, void *, void *, void *) {
+    _iocmdq_callback_data *d = (_iocmdq_callback_data *)field0;
+    ml_set_interrupts_enabled(false); /* disable interrupts */
+    d->Callback(d->Context);
+    ml_set_interrupts_enabled(true); /* enable interrupts */
+
+    /* we no longer have need for our callback data, and we have exited the cautious period without interrupts. */
+    IOFree(d, sizeof(_iocmdq_callback_data));
+    return kIOReturnSuccess;
+}
+
 ACPI_STATUS AcpiOsExtInitialize(void) {
     /* Initialize local resources. */
     gAcpiOsExtMemoryMapLock = IOLockAlloc();
     gAcpiOsExtMemoryMapSet = OSSet::withCapacity(4); /* OSSet's can expand if need be, right? */
     gAcpiOsExtMemoryMapIterator = OSCollectionIterator::withCollection(gAcpiOsExtMemoryMapSet);
-    
+
     /* init the execution system */
     gAcpiOsThreadWorkLoop = IOWorkLoop::workLoop();
-    /* TODO: private SDK */
-    //gAcpiOsThreadCommandGate = IOCommandGate::commandGate(NULL);
-    //gAcpiOsThreadCommandGate->setWorkLoop(gAcpiOsThreadWorkLoop);
+    gAcpiOsThreadCommandGate = IOCommandGate::commandGate(NULL);
+    gAcpiOsThreadCommandGate->setWorkLoop(gAcpiOsThreadWorkLoop);
     
     /* Fetch MCFG data from PE boot args, at least until PlatformExpert updates the data. */
     boot_args *args = (boot_args *)PE_state.bootArgs;
@@ -99,6 +115,7 @@ void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS addr, ACPI_SIZE size) {
             map->release();
             return (void *)va;
         }
+        desc->release();
     }
     return NULL;
 }
@@ -151,4 +168,17 @@ ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void) {
     }
     AcpiOsPrintf("ACPI: No RSDP found.\n");
     return 0;
+}
+
+ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context) {
+    _iocmdq_callback_data *d = (_iocmdq_callback_data *)IOMalloc(sizeof(_iocmdq_callback_data));
+    d->Callback = Function;
+    d->Context = Context;
+    gAcpiOsThreadCommandGate->runAction(&AcpiOsThreadDispatch, d);
+    return AE_OK;
+}
+
+void AcpiOsExtWaitEventsComplete(void) {
+    /* How do I check that my IOCommandGate has finished all of it's runAction calls? */
+    return;
 }

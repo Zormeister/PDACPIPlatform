@@ -148,7 +148,6 @@
 		F01A4D7D2DE13E2500349FD5 /* pstree.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C7D2DE13E2500349FD5 /* pstree.c */; };
 		F01A4D7F2DE13E2500349FD5 /* rsinfo.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C872DE13E2500349FD5 /* rsinfo.c */; };
 		F01A4D802DE13E2500349FD5 /* uttrack.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CBD2DE13E2500349FD5 /* uttrack.c */; };
-		F01A4D812DE13E2500349FD5 /* acgetline.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4BF32DE13E2500349FD5 /* acgetline.c */; };
 		F01A4D822DE13E2500349FD5 /* nsrepair2.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C6E2DE13E2500349FD5 /* nsrepair2.c */; };
 		F01A4D832DE13E2500349FD5 /* dbfileio.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C002DE13E2500349FD5 /* dbfileio.c */; };
 		F01A4D842DE13E2500349FD5 /* hwesleep.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C552DE13E2500349FD5 /* hwesleep.c */; };
@@ -214,7 +213,23 @@
 		F01A4E0D2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */; };
 		F01A4E0E2DE15F6800349FD5 /* PDACPIPCIRootBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */; };
 		F01A4E102DE16EA500349FD5 /* acdarwin.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0F2DE16E9E00349FD5 /* acdarwin.h */; };
+		F043C1642DE30E1F00349FD5 /* PDACPIRTC.kext in CopyFiles */ = {isa = PBXBuildFile; fileRef = F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		F043C16A2DE30E2E00349FD5 /* PDACPIRTC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */; };
+		F043C16B2DE30E2E00349FD5 /* PDACPIRTC.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		F043C1632DE30E0000349FD5 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = PlugIns;
+			dstSubfolderSpec = 0;
+			files = (
+				F043C1642DE30E1F00349FD5 /* PDACPIRTC.kext in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		8C084B8D2DC334D60010499B /* PDACPIPlatform.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDACPIPlatform.kext; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -510,10 +525,23 @@
 		F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPIPCIRootBridge.h; sourceTree = "<group>"; };
 		F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIPCIRootBridge.cpp; sourceTree = "<group>"; };
 		F01A4E0F2DE16E9E00349FD5 /* acdarwin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = acdarwin.h; sourceTree = "<group>"; };
+		F043C14E2DE2CAF100349FD5 /* IOCPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOCPU.h; sourceTree = "<group>"; };
+		F043C14F2DE2CAF100349FD5 /* IOPolledInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOPolledInterface.h; sourceTree = "<group>"; };
+		F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDACPIRTC.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		F043C1652DE30E2E00349FD5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PDACPIRTC.hpp; sourceTree = "<group>"; };
+		F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIRTC.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		8C084B8A2DC334D60010499B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F043C1532DE30CDC00349FD5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -528,6 +556,7 @@
 			children = (
 				F01A4BAF2DE13D2D00349FD5 /* PDACPIPlatform */,
 				F01A4BAD2DE13C9400349FD5 /* ACPICA */,
+				F043C1682DE30E2E00349FD5 /* PDACPIRTC */,
 				8C084B8E2DC334D60010499B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -536,6 +565,7 @@
 			isa = PBXGroup;
 			children = (
 				8C084B8D2DC334D60010499B /* PDACPIPlatform.kext */,
+				F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -573,15 +603,16 @@
 		F01A4BAF2DE13D2D00349FD5 /* PDACPIPlatform */ = {
 			isa = PBXGroup;
 			children = (
+				F043C14B2DE2CA6B00349FD5 /* ExternalHeaders */,
 				F01A4BA92DE139B500349FD5 /* AcpiOsLayer.cpp */,
 				F01A4A322DE12FE100349FD5 /* fadt_locator.cpp */,
 				F01A4A332DE12FE100349FD5 /* PDACPICPU.cpp */,
 				F01A4A342DE12FE100349FD5 /* PDACPIPlatformExpert.cpp */,
 				F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */,
-				F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */,
 				F01A4B5E2DE12FE100349FD5 /* pci_config_access.h */,
 				F01A4B5F2DE12FE100349FD5 /* PDACPICPU.h */,
 				F01A4B602DE12FE100349FD5 /* PDACPIPlatformExpert.h */,
+				F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */,
 				F01A4BA52DE12FE100349FD5 /* ACPICA_LICENSE */,
 				F01A4BA62DE12FE100349FD5 /* Info.plist */,
 				F01A4BA72DE12FE100349FD5 /* LICENSE.txt */,
@@ -998,6 +1029,33 @@
 			path = include;
 			sourceTree = "<group>";
 		};
+		F043C14B2DE2CA6B00349FD5 /* ExternalHeaders */ = {
+			isa = PBXGroup;
+			children = (
+				F043C14C2DE2CA7200349FD5 /* IOKit */,
+			);
+			path = ExternalHeaders;
+			sourceTree = "<group>";
+		};
+		F043C14C2DE2CA7200349FD5 /* IOKit */ = {
+			isa = PBXGroup;
+			children = (
+				F043C14E2DE2CAF100349FD5 /* IOCPU.h */,
+				F043C14F2DE2CAF100349FD5 /* IOPolledInterface.h */,
+			);
+			path = IOKit;
+			sourceTree = "<group>";
+		};
+		F043C1682DE30E2E00349FD5 /* PDACPIRTC */ = {
+			isa = PBXGroup;
+			children = (
+				F043C1652DE30E2E00349FD5 /* Info.plist */,
+				F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */,
+				F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */,
+			);
+			path = PDACPIRTC;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1013,6 +1071,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F043C1512DE30CDC00349FD5 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F043C16B2DE30E2E00349FD5 /* PDACPIRTC.hpp in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
@@ -1023,6 +1089,8 @@
 				8C084B882DC334D60010499B /* Headers */,
 				8C084B892DC334D60010499B /* Sources */,
 				8C084B8A2DC334D60010499B /* Frameworks */,
+				F043C1612DE30DF300349FD5 /* Resources */,
+				F043C1632DE30E0000349FD5 /* CopyFiles */,
 			);
 			buildRules = (
 			);
@@ -1035,6 +1103,26 @@
 			productReference = 8C084B8D2DC334D60010499B /* PDACPIPlatform.kext */;
 			productType = "com.apple.product-type.kernel-extension";
 		};
+		F043C1552DE30CDC00349FD5 /* PDACPIRTC */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F043C15E2DE30CDC00349FD5 /* Build configuration list for PBXNativeTarget "PDACPIRTC" */;
+			buildPhases = (
+				F043C1512DE30CDC00349FD5 /* Headers */,
+				F043C1522DE30CDC00349FD5 /* Sources */,
+				F043C1532DE30CDC00349FD5 /* Frameworks */,
+				F043C1542DE30CDC00349FD5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PDACPIRTC;
+			packageProductDependencies = (
+			);
+			productName = PDACPIRTC;
+			productReference = F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -1044,6 +1132,10 @@
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
 					8C084B8C2DC334D60010499B = {
+						CreatedOnToolsVersion = 16.3;
+						ProvisioningStyle = Automatic;
+					};
+					F043C1552DE30CDC00349FD5 = {
 						CreatedOnToolsVersion = 16.3;
 						ProvisioningStyle = Automatic;
 					};
@@ -1063,9 +1155,27 @@
 			projectRoot = "";
 			targets = (
 				8C084B8C2DC334D60010499B /* PDACPIPlatform */,
+				F043C1552DE30CDC00349FD5 /* PDACPIRTC */,
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		F043C1542DE30CDC00349FD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F043C1612DE30DF300349FD5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8C084B892DC334D60010499B /* Sources */ = {
@@ -1211,7 +1321,6 @@
 				F01A4D7D2DE13E2500349FD5 /* pstree.c in Sources */,
 				F01A4D7F2DE13E2500349FD5 /* rsinfo.c in Sources */,
 				F01A4D802DE13E2500349FD5 /* uttrack.c in Sources */,
-				F01A4D812DE13E2500349FD5 /* acgetline.c in Sources */,
 				F01A4D822DE13E2500349FD5 /* nsrepair2.c in Sources */,
 				F01A4D832DE13E2500349FD5 /* dbfileio.c in Sources */,
 				F01A4D842DE13E2500349FD5 /* hwesleep.c in Sources */,
@@ -1277,6 +1386,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F043C1522DE30CDC00349FD5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F043C16A2DE30E2E00349FD5 /* PDACPIRTC.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -1299,7 +1416,10 @@
 				MODULE_START = PDACPIPlatform_start;
 				MODULE_STOP = PDACPIPlatform_stop;
 				MODULE_VERSION = 1.0.0d1;
-				OTHER_CFLAGS = "-Wno-implicit-conversion";
+				OTHER_CFLAGS = (
+					"-Wno-implicit-conversion",
+					"-Wno-deprected",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPlatform;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUN_CLANG_STATIC_ANALYZER = YES;
@@ -1328,7 +1448,10 @@
 				MODULE_START = PDACPIPlatform_start;
 				MODULE_STOP = PDACPIPlatform_stop;
 				MODULE_VERSION = 1.0.0d1;
-				OTHER_CFLAGS = "-Wno-implicit-conversion";
+				OTHER_CFLAGS = (
+					"-Wno-implicit-conversion",
+					"-Wno-deprected",
+				);
 				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPlatform;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				RUN_CLANG_STATIC_ANALYZER = YES;
@@ -1456,6 +1579,51 @@
 			};
 			name = Release;
 		};
+		F043C15F2DE30CDC00349FD5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PDACPIRTC/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				MODULE_NAME = org.puredarwin.driver.PDACPIRTC;
+				MODULE_VERSION = 1.0.0d1;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIRTC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		F043C1602DE30CDC00349FD5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PDACPIRTC/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 15.4;
+				MARKETING_VERSION = 1.0;
+				MODULE_NAME = org.puredarwin.driver.PDACPIRTC;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIRTC;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1473,6 +1641,15 @@
 			buildConfigurations = (
 				8C084B952DC334D60010499B /* Debug */,
 				8C084B962DC334D60010499B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F043C15E2DE30CDC00349FD5 /* Build configuration list for PBXNativeTarget "PDACPIRTC" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F043C15F2DE30CDC00349FD5 /* Debug */,
+				F043C1602DE30CDC00349FD5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

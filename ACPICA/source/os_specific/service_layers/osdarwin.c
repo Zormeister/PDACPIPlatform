@@ -40,7 +40,6 @@
 #include <mach/semaphore.h>
 #include <machine/machine_routines.h>
 #include <mach/machine.h>
-#include <architecture/i386/pio.h>
 #include <IOKit/IOLib.h>
 #include <mach/thread_status.h>
 
@@ -59,6 +58,7 @@ extern void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS, ACPI_SIZE);
 extern void AcpiOsExtUnmapMemory(void *);
 extern ACPI_STATUS AcpiOsExtInitialize(void);
 extern ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
+extern ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
 
 ACPI_STATUS AcpiOsInitialize(void) {
     return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
@@ -170,15 +170,102 @@ AcpiOsReadMemory(
         default:
             AcpiOsPrintf("ACPI: bad width value\n");
             return AE_ERROR;
-            break;
     }
 }
+
+extern uint8_t ml_port_io_read8(uint16_t ioport);
+extern uint16_t ml_port_io_read16(uint16_t ioport);
+extern uint32_t ml_port_io_read32(uint16_t ioport);
+
+ACPI_STATUS
+AcpiOsReadPort(ACPI_IO_ADDRESS Address,
+               UINT32 *Value,
+               UINT32 Width) {
+    switch (Width) {
+        case 8:
+            *Value = ml_port_io_read8(Address);
+            return AE_OK;
+        case 16:
+            *Value = ml_port_io_read16(Address);
+            return AE_OK;
+        case 32:
+            *Value = ml_port_io_read32(Address);
+            return AE_OK;
+        default:
+            return AE_BAD_PARAMETER;
+    }
+}
+
 
 extern void ml_phys_write_byte(vm_offset_t paddr, unsigned int data);
 extern void ml_phys_write_byte_64(addr64_t paddr, unsigned int data);
 extern void ml_phys_write_half(vm_offset_t paddr, unsigned int data);
 extern void ml_phys_write_half_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_word(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_word_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_double(vm_offset_t paddr, unsigned long long data);
+extern void ml_phys_write_double_64(addr64_t paddr, unsigned long long data);
 
+ACPI_STATUS
+AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
+                  UINT64 Value,
+                  UINT32 Width) {
+    switch (Width) {
+        case 8:
+#if __LP64__
+            ml_phys_write_byte_64(Address, (UINT32)Value);
+#else
+            ml_phys_write_byte(Address, (UINT32)Value);
+#endif
+            return AE_OK;
+        case 16:
+#if __LP64__
+            ml_phys_write_half_64(Address, (UINT32)Value);
+#else
+            ml_phys_write_half(Address, (UINT32)Value);
+#endif
+            return AE_OK;
+        case 32:
+#if __LP64__
+            ml_phys_write_word_64(Address, (UINT32)Value);
+#else
+            ml_phys_write_word(Address, (UINT32)Value);
+#endif
+            return AE_OK;
+        case 64:
+#if __LP64__
+            ml_phys_write_double_64(Address, Value);
+#else
+            ml_phys_write_double(Address, Value);
+#endif
+        default:
+            AcpiOsPrintf("ACPI: bad width value\n");
+            return AE_ERROR;
+    }
+}
+
+extern void ml_port_io_write8(uint16_t ioport, uint8_t val);
+extern void ml_port_io_write16(uint16_t ioport, uint16_t val);
+extern void ml_port_io_write32(uint16_t ioport, uint32_t val);
+
+ACPI_STATUS
+AcpiOsWritePort(ACPI_IO_ADDRESS Address,
+                UINT32 Value,
+                UINT32 Width) {
+    switch (Width) {
+        case 8:
+            ml_port_io_write8(Address, (UINT8)Value);
+            return AE_OK;
+        case 16:
+            ml_port_io_write16(Address, (UINT16)Value);
+            return AE_OK;
+        case 32:
+            ml_port_io_write32(Address, Value);
+            return AE_OK;
+        default:
+            return AE_BAD_PARAMETER;
+    }
+}
 
 #pragma mark OS time related functions
 
@@ -229,8 +316,7 @@ AcpiOsGetThreadId(void) {
 }
 
 ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context) {
-    /* ok what? 'Schedule a procedure for deferred execution.' what the shit does that mean??? */
-    return AE_OK;
+    return AcpiOsExtExecute(Type, Function, Context);
 }
 
 
