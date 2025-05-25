@@ -22,6 +22,20 @@
 	<string>1</string>
 	<key>IOKitPersonalities</key>
 	<dict>
+		<key>ACPI CPU</key>
+		<dict>
+			<key>CFBundleIdentifier</key>
+			<string>org.puredarwin.driver.PDACPIPlatform</string>
+			<key>IOClass</key>
+			<string>PDACPICPU</string>
+			<key>IONameMatch</key>
+			<array>
+				<string>processor</string>
+				<string>ACPI0007</string>
+			</array>
+			<key>IOProviderClass</key>
+			<string>IOACPIPlatformDevice</string>
+		</dict>
 		<key>PDACPIPlatformExpert</key>
 		<dict>
 			<key>CFBundleIdentifier</key>

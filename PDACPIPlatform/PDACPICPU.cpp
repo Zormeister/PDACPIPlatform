@@ -35,6 +35,20 @@
 
 #include "PDACPICPU.h"
 #include <IOKit/IOLib.h>
+#include <i386/machine_routines.h>
+
+#ifndef SDK_IS_PRIVATE
+
+/* ISTG. */
+
+extern kern_return_t
+ml_processor_register(
+    cpu_id_t        cpu_id,
+    uint32_t        lapic_id,
+    processor_t     *processor_out,
+    boolean_t       boot_cpu,
+    boolean_t       start);
+#endif
 
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
@@ -44,9 +58,26 @@ bool PDACPICPU::start(IOService* provider)
     IOLog("PDACPICPU::start\n");
     if (!super::start(provider))
         return false;
+    
+    /* get our freaky stuff going */
+    
+    /* ACPIPE should hopefully feed us these values. */
+    OSNumber *lapic = OSDynamicCast(OSNumber, provider->getProperty("processor-lapic"));
+    OSNumber *id = OSDynamicCast(OSNumber, provider->getProperty("processor-id"));
+    
 
     registerService();
     return true;
+}
+
+void PDACPICPU::initCPU(bool boot) {
+    /* mmm... */
+    this->setCPUState(kIOCPUStateRunning);
+}
+
+kern_return_t PDACPICPU::startCPU(vm_offset_t, vm_offset_t) {
+    IOLog("ACPICPU: CPU start requested\n");
+    return KERN_SUCCESS;
 }
 
 void PDACPICPU::enterC1()

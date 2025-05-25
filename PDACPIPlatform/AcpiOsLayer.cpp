@@ -162,9 +162,12 @@ ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void) {
                 IOMemoryDescriptor *desc = IOMemoryDescriptor::withAddressRange(0, sizeof(tbl), kIODirectionOutIn | kIOMemoryMapperNone, kernel_task);
                 bzero(&tbl, sizeof(tbl));
                 desc->readBytes(0, &tbl, sizeof(tbl));
+                reg->release();
+                desc->release();
                 return (ACPI_PHYSICAL_ADDRESS)tbl.VendorTable;
             }
         }
+        reg->release();
     }
     AcpiOsPrintf("ACPI: No RSDP found.\n");
     return 0;

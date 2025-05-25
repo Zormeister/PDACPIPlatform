@@ -61,6 +61,7 @@ public:
     virtual bool start(IOService* provider) override;
     
     virtual kern_return_t startCPU(vm_offset_t start_paddr, vm_offset_t arg_paddr) override;
+    virtual void initCPU(bool boot) override;
     
     void enterC1();
     void enterCState(uint32_t cstateType);

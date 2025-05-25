@@ -35,10 +35,13 @@
 
 #include "PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
+
+extern "C" {
 #include "acpica/acpi.h" // For ACPICA APIs
 #include "acpica/acstruct.h"
 #include "acpica/aclocal.h"
 #include "acpica/acglobal.h"
+}
 
 #define super IOACPIPlatformExpert
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
