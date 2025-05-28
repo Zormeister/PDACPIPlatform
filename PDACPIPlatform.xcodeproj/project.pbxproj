@@ -215,7 +215,7 @@
 		F01A4E102DE16EA500349FD5 /* acdarwin.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0F2DE16E9E00349FD5 /* acdarwin.h */; };
 		F043C1642DE30E1F00349FD5 /* PDACPIRTC.kext in CopyFiles */ = {isa = PBXBuildFile; fileRef = F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F043C16A2DE30E2E00349FD5 /* PDACPIRTC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */; };
-		F043C16B2DE30E2E00349FD5 /* PDACPIRTC.hpp in Headers */ = {isa = PBXBuildFile; fileRef = F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */; };
+		F043C16B2DE30E2E00349FD5 /* PDACPIRTC.h in Headers */ = {isa = PBXBuildFile; fileRef = F043C1662DE30E2E00349FD5 /* PDACPIRTC.h */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -529,7 +529,7 @@
 		F043C14F2DE2CAF100349FD5 /* IOPolledInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOPolledInterface.h; sourceTree = "<group>"; };
 		F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDACPIRTC.kext; sourceTree = BUILT_PRODUCTS_DIR; };
 		F043C1652DE30E2E00349FD5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = PDACPIRTC.hpp; sourceTree = "<group>"; };
+		F043C1662DE30E2E00349FD5 /* PDACPIRTC.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPIRTC.h; sourceTree = "<group>"; };
 		F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIRTC.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -1050,7 +1050,7 @@
 			isa = PBXGroup;
 			children = (
 				F043C1652DE30E2E00349FD5 /* Info.plist */,
-				F043C1662DE30E2E00349FD5 /* PDACPIRTC.hpp */,
+				F043C1662DE30E2E00349FD5 /* PDACPIRTC.h */,
 				F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */,
 			);
 			path = PDACPIRTC;
@@ -1075,7 +1075,7 @@
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F043C16B2DE30E2E00349FD5 /* PDACPIRTC.hpp in Headers */,
+				F043C16B2DE30E2E00349FD5 /* PDACPIRTC.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -83,7 +83,7 @@ private:
     IOACPIAddressSpaceHandler m_smbusSpaceHandler;
     void *m_smbusSpaceContext;
     IORTC *m_localRTC;
-    IOLock *m_rtcLock;
+    IOPlatformExpertDevice *m_provider;
 };
 
 #endif

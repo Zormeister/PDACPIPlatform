@@ -46,6 +46,8 @@ extern "C" {
 #define super IOACPIPlatformExpert
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
 
+ACPI_TABLE_MADT *gAPICTable;
+
 bool PDACPIPlatformExpert::initializeACPICA() {
     /* No need to init OSL seperately. AcpiInitializeSubsystem calls it as one of it's first calls. */
 
@@ -73,6 +75,12 @@ bool PDACPIPlatformExpert::initializeACPICA() {
         AcpiTerminate(); // Cleanup
         return false;
     }
+    
+    /* the system-type field is derived from the FADT, i think. */
+    this->m_provider->setProperty("system-type", &AcpiGbl_FADT.PreferredProfile, 1);
+    
+    this->catalogACPITables();
+    this->fetchPCIData();
 
     status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
     if (ACPI_FAILURE(status)) {
@@ -105,7 +113,7 @@ bool PDACPIPlatformExpert::fetchPCIData() {
     /* TODO: finish this */
 }
 
-/*
+
 UInt32 PDACPIPlatformExpert::getACPITableCount(const char *name) {
     UInt32 cnt = 0;
     while (cnt++) {
@@ -132,7 +140,7 @@ bool PDACPIPlatformExpert::catalogACPITables() {
     
     return true;
 }
-*/
+
 
 bool PDACPIPlatformExpert::start(IOService* provider)
 {
@@ -143,9 +151,15 @@ bool PDACPIPlatformExpert::start(IOService* provider)
         return false;
     }
     
+    this->m_provider = OSDynamicCast(IOPlatformExpertDevice, provider);
+    
     /* Respond to certain boot arguemnts */
     PE_parse_boot_argn("acpi_layer", &AcpiDbgLayer, 4);
     PE_parse_boot_argn("acpi_level", &AcpiDbgLevel, 4);
+
+    if (!this->initializeACPICA()) {
+        panic("ACPI: ACPICA layer failed to initialize.\n");
+    }
 
     IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
 

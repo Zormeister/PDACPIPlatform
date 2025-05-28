@@ -43,7 +43,10 @@ class PDACPIRTC : public IORTC {
     OSDeclareDefaultStructors(PDACPIRTC);
     
     /* IOService overrides */
-    virtual bool start(IOService *provider);
-}
+    virtual bool start(IOService *provider) override;
+    
+    virtual long getGMTTimeOfDay(void) override;
+    virtual void setGMTTimeOfDay(long secs) override;
+};
 
 #endif /* _PDACPI_RTC_H */

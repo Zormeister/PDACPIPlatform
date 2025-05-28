@@ -33,3 +33,9 @@
 *
 * This specific file was created by Zormeister
 */
+
+#include "PDACPIRTC.h"
+
+OSDefineMetaClassAndStructors(PDACPIRTC, IORTC)
+
+
