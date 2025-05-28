@@ -185,3 +185,45 @@ void AcpiOsExtWaitEventsComplete(void) {
     /* How do I check that my IOCommandGate has finished all of it's runAction calls? */
     return;
 }
+
+/*
+ #define AE_ERROR                        EXCEP_ENV (0x0001)
+ #define AE_NO_ACPI_TABLES               EXCEP_ENV (0x0002)
+ #define AE_NO_NAMESPACE                 EXCEP_ENV (0x0003)
+ #define AE_NO_MEMORY                    EXCEP_ENV (0x0004)
+ #define AE_NOT_FOUND                    EXCEP_ENV (0x0005)
+ #define AE_NOT_EXIST                    EXCEP_ENV (0x0006)
+ #define AE_ALREADY_EXISTS               EXCEP_ENV (0x0007)
+ #define AE_TYPE                         EXCEP_ENV (0x0008)
+ #define AE_NULL_OBJECT                  EXCEP_ENV (0x0009)
+ #define AE_NULL_ENTRY                   EXCEP_ENV (0x000A)
+ #define AE_BUFFER_OVERFLOW              EXCEP_ENV (0x000B)
+ #define AE_STACK_OVERFLOW               EXCEP_ENV (0x000C)
+ #define AE_STACK_UNDERFLOW              EXCEP_ENV (0x000D)
+ #define AE_NOT_IMPLEMENTED              EXCEP_ENV (0x000E)
+ #define AE_SUPPORT                      EXCEP_ENV (0x000F)
+ #define AE_LIMIT                        EXCEP_ENV (0x0010)
+ #define AE_TIME                         EXCEP_ENV (0x0011)
+ #define AE_ACQUIRE_DEADLOCK             EXCEP_ENV (0x0012)
+ #define AE_RELEASE_DEADLOCK             EXCEP_ENV (0x0013)
+ #define AE_NOT_ACQUIRED                 EXCEP_ENV (0x0014)
+ #define AE_ALREADY_ACQUIRED             EXCEP_ENV (0x0015)
+ #define AE_NO_HARDWARE_RESPONSE         EXCEP_ENV (0x0016)
+ #define AE_NO_GLOBAL_LOCK               EXCEP_ENV (0x0017)
+ #define AE_ABORT_METHOD                 EXCEP_ENV (0x0018)
+ #define AE_SAME_HANDLER                 EXCEP_ENV (0x0019)
+ #define AE_NO_HANDLER                   EXCEP_ENV (0x001A)
+ #define AE_OWNER_ID_LIMIT               EXCEP_ENV (0x001B)
+ #define AE_NOT_CONFIGURED               EXCEP_ENV (0x001C)
+ #define AE_ACCESS                       EXCEP_ENV (0x001D)
+ #define AE_IO_ERROR                     EXCEP_ENV (0x001E)
+ #define AE_NUMERIC_OVERFLOW             EXCEP_ENV (0x001F)
+ #define AE_HEX_OVERFLOW                 EXCEP_ENV (0x0020)
+ #define AE_DECIMAL_OVERFLOW             EXCEP_ENV (0x0021)
+ #define AE_OCTAL_OVERFLOW               EXCEP_ENV (0x0022)
+ #define AE_END_OF_TABLE                 EXCEP_ENV (0x0023)
+ */
+
+IOReturn AcpiStatus2IOReturn(ACPI_STATUS stat) {
+    return kIOReturnUnsupported;
+}

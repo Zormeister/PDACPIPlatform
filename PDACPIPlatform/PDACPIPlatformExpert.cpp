@@ -252,3 +252,41 @@ void PDACPIPlatformExpert::unregisterAddressSpaceHandler(IOACPIPlatformDevice *,
             break;
     }
 }
+
+IOReturn PDACPIPlatformExpert::readAddressSpace(UInt64 *value,
+                                                IOACPIAddressSpaceID spaceID,
+                                                IOACPIAddress address,
+                                                UInt32 bitWidth,
+                                                UInt32 bitOffset,
+                                                IOOptionBits options) {
+    switch (spaceID) {
+        case kIOACPIAddressSpaceIDSystemMemory: {
+            ACPI_STATUS status = AcpiOsReadMemory(address.addr64, value, bitWidth);
+            if (ACPI_FAILURE(status)) {
+                return kIOReturnError;
+            } else {
+                return kIOReturnSuccess;
+            }
+            break;
+        }
+        case kIOACPIAddressSpaceIDSystemIO: {
+            ACPI_STATUS status = AcpiOsReadPort((ACPI_IO_ADDRESS)address.addr64, (UInt32 *)value, bitWidth);
+            if (ACPI_FAILURE(status)) {
+                return kIOReturnError;
+            } else {
+                return kIOReturnSuccess;
+            }
+            break;
+        }
+        case kIOACPIAddressSpaceIDEmbeddedController:
+            if (this->m_ecSpaceHandler && this->m_ecSpaceContext) {
+                return this->m_ecSpaceHandler(kIOACPIAddressSpaceOpRead, address, value, bitWidth, bitOffset, this->m_ecSpaceContext);
+            }
+        case kIOACPIAddressSpaceIDSMBus:
+            if (this->m_smbusSpaceHandler && this->m_smbusSpaceContext) {
+                return this->m_smbusSpaceHandler(kIOACPIAddressSpaceOpRead, address, value, bitWidth, bitOffset, this->m_smbusSpaceContext);
+            }
+        default:
+            break;
+    }
+}

@@ -64,6 +64,33 @@ public:
                                    IOACPIAddressSpaceID spaceID,
                                    IOACPIAddressSpaceHandler handler,
                                    IOOptionBits options) override;
+    
+    virtual IOReturn readAddressSpace(
+                                    UInt64 *value,
+                                    IOACPIAddressSpaceID spaceID,
+                                    IOACPIAddress address,
+                                    UInt32 bitWidth,
+                                    UInt32 bitOffset,
+                                    IOOptionBits options) override;
+
+    virtual IOReturn writeAddressSpace(
+                                    UInt64 value,
+                                    IOACPIAddressSpaceID spaceID,
+                                    IOACPIAddress address,
+                                    UInt32 bitWidth,
+                                    UInt32 bitOffset,
+                                    IOOptionBits options) override;
+
+    // Device power management
+
+    virtual IOReturn setDevicePowerState(IOACPIPlatformDevice *device,
+                                         UInt32 powerState ) override;
+
+    virtual IOReturn getDevicePowerState(IOACPIPlatformDevice * device,
+                                         UInt32 * powerState) override;
+
+    virtual IOReturn setDeviceWakeEnable(IOACPIPlatformDevice * device,
+                                         bool enable) override;
 
     /* internal functions */
 private:
