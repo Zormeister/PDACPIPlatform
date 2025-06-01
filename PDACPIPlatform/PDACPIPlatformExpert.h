@@ -98,7 +98,6 @@ private:
     void performACPIPowerOff(void);
     bool catalogACPITables(void);
     bool fetchPCIData(void);
-    UInt32 getACPITableCount(const char *name);
     void createCPUNubs(void); /* walk MADT and enumerate the CPU devices/objects available. */
     
 private:

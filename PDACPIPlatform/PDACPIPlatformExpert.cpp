@@ -113,32 +113,33 @@ bool PDACPIPlatformExpert::fetchPCIData() {
     /* TODO: finish this */
 }
 
-
-UInt32 PDACPIPlatformExpert::getACPITableCount(const char *name) {
-    UInt32 cnt = 0;
-    while (cnt++) {
-        ACPI_TABLE_HEADER *Tbl;
-        ACPI_STATUS stat = AcpiGetTable((char *)name, cnt, &Tbl);
-    }
-}
+struct AcpiTableMap {
+    char Signature[4];
+    UInt8 instance;
+    ACPI_TABLE_HEADER *Tbl;
+};
 
 bool PDACPIPlatformExpert::catalogACPITables() {
     ACPI_TABLE_HEADER *Table;
     UInt32 tables = AcpiGbl_RootTableList.CurrentTableCount;
     m_tableDict = OSDictionary::withCapacity(tables + 1);
-    char name[32];
+    
+    AcpiTableMap *tmp = IOMalloc(sizeof(AcpiTableMap) * tables);
+    AcpiTableMap *last = tmp;
     
     for (UInt32 i = 0; i < tables; i++) {
         AcpiGetTableByIndex(i, &Table);
-        // Now that we have our tables...
-        OSData *data = OSData::withBytesNoCopy(Table, Table->Length);
         
-        if (m_tableDict->getObject(Table->Signature)) {
-            snprintf(name, 32, "%4.4s-%d", Table->Signature);
-        }
     }
     
     return true;
+}
+
+const OSData *PDACPIPlatformExpert::getACPITableData(const char *name, UInt32 TableIndex)
+{
+    char tbl[32];
+    
+    return nullptr;
 }
 
 
@@ -234,7 +235,8 @@ IOReturn PDACPIPlatformExpert::registerAddressSpaceHandler(IOACPIPlatformDevice 
 void PDACPIPlatformExpert::unregisterAddressSpaceHandler(IOACPIPlatformDevice *,
                                                          IOACPIAddressSpaceID spaceID,
                                                          IOACPIAddressSpaceHandler,
-                                                         IOOptionBits) {
+                                                         IOOptionBits)
+{
     /* Remove the specified handlers */
     switch (spaceID) {
         case kIOACPIAddressSpaceIDEmbeddedController:
@@ -258,7 +260,8 @@ IOReturn PDACPIPlatformExpert::readAddressSpace(UInt64 *value,
                                                 IOACPIAddress address,
                                                 UInt32 bitWidth,
                                                 UInt32 bitOffset,
-                                                IOOptionBits options) {
+                                                IOOptionBits options)
+{
     switch (spaceID) {
         case kIOACPIAddressSpaceIDSystemMemory: {
             ACPI_STATUS status = AcpiOsReadMemory(address.addr64, value, bitWidth);

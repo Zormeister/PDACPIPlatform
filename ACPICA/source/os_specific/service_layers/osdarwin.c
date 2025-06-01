@@ -53,6 +53,16 @@ struct _memory_tag {
     ACPI_SIZE size;
 };
 
+#define ACPI_OS_PRINTF_USE_KPRINTF 0x1
+#define ACPI_OS_PRINTF_USE_IOLOG   0x2
+
+#if DEBUG
+UInt32 gAcpiOsPrintfFlags = ACPI_OS_PRINTF_USE_KPRINTF | ACPI_OS_PRINTF_USE_IOLOG;
+#else
+/* ZORMEISTER: silence ACPICA's terror from the bad ACPI of HP, Lenovo and various other companies */
+UInt32 gAcpiOsPrintfFlags = ACPI_OS_PRINTF_USE_IOLOG;
+#endif
+
 /* External functions - see PDACPIPlatform/AcpiOsLayer.cpp */
 extern void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS, ACPI_SIZE);
 extern void AcpiOsExtUnmapMemory(void *);
@@ -61,6 +71,7 @@ extern ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 extern ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
 
 ACPI_STATUS AcpiOsInitialize(void) {
+    PE_parse_boot_argn("acpi_os_log", &gAcpiOsPrintfFlags, sizeof(UInt32));
     return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
 }
 
@@ -362,4 +373,27 @@ ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info) {
         }
     }
     return AE_OK;
+}
+
+void AcpiOsPrintf(const char *fmt, ...) {
+    va_list va;
+    va_start(va, fmt);
+    AcpiOsVprintf(fmt, va);
+    va_end(va);
+}
+
+void AcpiOsVprintf(const char *fmt, va_list list) {
+    char msg[4096]; /* I don't think a message will exceed this size in one go. */
+    vsnprintf(msg, 4096, fmt, list);
+
+    if (gAcpiOsPrintfFlags & ACPI_OS_PRINTF_USE_KPRINTF) {
+        kprintf("%s", msg);
+    }
+    
+    if (gAcpiOsPrintfFlags & ACPI_OS_PRINTF_USE_IOLOG) {
+        /* Allegedly IOLog can't be used within an interrupt context. I believe. */
+        if (!ml_at_interrupt_context()) {
+            IOLog("%s", msg);
+        }
+    }
 }
