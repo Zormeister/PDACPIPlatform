@@ -36,6 +36,12 @@
 #include "PDACPIPlatformExpert.h"
 #include <IOKit/IOLib.h>
 
+#if __has_include(<IOKit/pci/IOPCIPrivate.h>)
+#include <IOKit/pci/IOPCIPrivate.h>
+#else
+extern IOReturn IOPCIPlatformInitialize(void);
+#endif
+
 extern "C" {
 #include "acpica/acpi.h" // For ACPICA APIs
 #include "acpica/acstruct.h"
@@ -48,7 +54,12 @@ OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
 
 ACPI_TABLE_MADT *gAPICTable;
 
-bool PDACPIPlatformExpert::initializeACPICA() {
+/* AcpiOsLayer.cpp */
+extern ACPI_MCFG_ALLOCATION *gPCIDataFromMCFG;
+extern size_t gPCIMCFGEntryCount;
+
+bool PDACPIPlatformExpert::initializeACPICA()
+{
     /* No need to init OSL seperately. AcpiInitializeSubsystem calls it as one of it's first calls. */
 
     ACPI_STATUS status = AcpiInitializeSubsystem();
@@ -97,53 +108,106 @@ bool PDACPIPlatformExpert::initializeACPICA() {
     }
 }
 
-bool PDACPIPlatformExpert::fetchPCIData() {
-    /* Obtain PCI data from MCFG table */
-    ACPI_STATUS status = AE_OK;
-    ACPI_TABLE_HEADER *TableHeader = NULL;
-    ACPI_TABLE_MCFG *mcfgTable = NULL;
-    
-    status = AcpiGetTable(ACPI_SIG_MCFG, 0, &TableHeader);
-    if (ACPI_FAILURE(status)) {
-        IOLog("ACPI: Failed to get MCFG table from ACPICA (%s)\n", AcpiFormatException(status));
-        return false;
+/* this is so IOPCIFamily gets our ACPI tables. */
+OSObject *PDACPIPlatformExpert::copyProperty(const char *property) const
+{
+    if (strncmp(property, "ACPI Tables", strlen(property)) == 0) {
+        return this->m_tableDict->copyCollection();
     }
     
-    mcfgTable = (ACPI_TABLE_MCFG *)TableHeader;
-    /* TODO: finish this */
+    return super::copyProperty(property);
 }
 
+bool PDACPIPlatformExpert::fetchPCIData()
+{
+    const OSData *table = this->getACPITableData("MCFG", 0);
+    
+    if (!table) {
+        IOLog("ACPI: No MCFG table found in the ACPI table collection.\n");
+    }
+    
+    ACPI_TABLE_MCFG *mcfg = (ACPI_TABLE_MCFG *)table->getBytesNoCopy();
+
+    gPCIMCFGEntryCount = (mcfg->Header.Length - sizeof(ACPI_TABLE_MCFG)) / sizeof(ACPI_MCFG_ALLOCATION);
+    gPCIDataFromMCFG = (ACPI_MCFG_ALLOCATION *)(table->getBytesNoCopy() + sizeof(ACPI_TABLE_MCFG));
+    
+    /* While we're here; kindly tell IOPCIFamily to initialize MMIO mapping services. */
+    IOPCIPlatformInitialize();
+    
+    return true;
+}
+
+/* This was based off of osbsdtbl.c's shenanigans */
 struct AcpiTableMap {
     char Signature[4];
     UInt8 instance;
-    ACPI_TABLE_HEADER *Tbl;
+    ACPI_TABLE_HEADER *Tbl; /* well we've already mapped the damn thing so, might as well reuse the pointer. */
 };
 
-bool PDACPIPlatformExpert::catalogACPITables() {
+bool PDACPIPlatformExpert::catalogACPITables()
+{
+    char name[32];
     ACPI_TABLE_HEADER *Table;
     UInt32 tables = AcpiGbl_RootTableList.CurrentTableCount;
-    m_tableDict = OSDictionary::withCapacity(tables + 1);
-    
+    this->m_tableDict = OSDictionary::withCapacity(tables + 1);
+
     AcpiTableMap *tmp = IOMalloc(sizeof(AcpiTableMap) * tables);
-    AcpiTableMap *last = tmp;
-    
+
+    /* ZORMEISTER: God this is such a hack... */
     for (UInt32 i = 0; i < tables; i++) {
         AcpiGetTableByIndex(i, &Table);
-        
+        for (UInt32 j = i; 0 > j; t--) { /* ZORMEISTER: walk backwards from our current position. */
+            if (strncmp(tmp[j].Signature, Table->Signature, 4) == 0) {
+                if (tmp[j].instance == 0) {
+                    tmp[j].instance++;
+                }
+
+                tmp[i].instance = tmp[j].instance + 1;
+            }
+        }
+    }
+
+    /* ZORMEISTER: now do it again. */
+
+    for (UInt32 k = 0; k < tables; k++) {
+        /* Allocate an OSData using the ACPI table length. */
+        OSData *data = OSData::withBytesNoCopy(tmp[k].Tbl, tmp[k].Tbl->Length);
+        memset(name, 0, 32); /* clear out the stack variable */
+        if (tmp[k].instance > 0) {
+            snprintf(name, 32, "%4.4s-%u", tmp[k].Tbl->Signature, tmp[k].instance);
+        } else {
+            snprintf(name, 32, "%4.4s", tmp[k].Tbl->Signature);
+        }
+
+        this->m_tableDict->setObject(name, data);
+        OSSafeReleaseNULL(data);
     }
     
+    IOFree(tmp, sizeof(AcpiTableMap) * tables);
+
     return true;
 }
 
 const OSData *PDACPIPlatformExpert::getACPITableData(const char *name, UInt32 TableIndex)
 {
     char tbl[32];
+
+    if (TableIndex > 0) {
+        snprintf(tbl, 32, "%4.4s-%u", name, TableIndex);
+    } else {
+        snprintf(tbl, 32, "%4.4s", name);
+    }
+
+    OSObject *obj = this->m_tableDict->getObject(name);
+    if (obj) {
+        return OSDynamicCast(OSData, obj);
+    }
     
     return nullptr;
 }
 
 
-bool PDACPIPlatformExpert::start(IOService* provider)
+bool PDACPIPlatformExpert::start(IOService *provider)
 {
     IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log
 
@@ -171,7 +235,7 @@ bool PDACPIPlatformExpert::start(IOService* provider)
     return true;
 }
 
-void PDACPIPlatformExpert::stop(IOService* provider)
+void PDACPIPlatformExpert::stop(IOService *provider)
 {
     IOLog("PDACPIPlatformExpert::stop\n");
     super::stop(provider);

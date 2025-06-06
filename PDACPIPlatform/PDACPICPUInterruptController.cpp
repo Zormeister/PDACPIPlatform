@@ -33,45 +33,8 @@
 *
 */
 
-#ifndef _PDACPI_CPU_H
-#define _PDACPI_CPU_H
+#include "PDACPICPUInterruptController.h"
 
-#include <IOKit/IOService.h>
-#include <libkern/c++/OSArray.h>
-#include "acpi.h"
+OSDefineMetaClassAndStructors(PDACPICPUInterruptController, IOCPUInterruptController);
 
-#if __has_include(<IOKit/IOCPU.h>)
-#include <IOKit/IOCPU.h>
-#else
-typedef void (*ipi_handler_t)(void);
 
-#include "ExternalHeaders/IOKit/IOCPU.h"
-#endif
-
-class PDACPICPU : public IOCPU
-{
-    OSDeclareDefaultStructors(PDACPICPU)
-
-private:
-    uint32_t currentPState;
-    OSArray* pStateArray;
-    OSArray* cStateArray;
-
-public:
-    virtual bool start(IOService* provider) override;
-    
-    virtual kern_return_t startCPU(vm_offset_t start_paddr, vm_offset_t arg_paddr) override;
-    virtual void initCPU(bool boot) override;
-    virtual void quiesceCPU(void) override;
-    virtual void haltCPU(void) override;
-    virtual const OSSymbol *getCPUName(void) override;
-    
-    void enterC1();
-    void enterCState(uint32_t cstateType);
-    bool switchToPState(uint32_t index);
-    uint32_t getBestCStateForLatency(uint32_t maxAllowedLatencyUs);
-    OSArray* getPStateArray() const { return pStateArray; }
-    OSArray* getCStateArray() const { return cStateArray; }
-};
-
-#endif

@@ -213,6 +213,8 @@
 		F01A4E0D2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */; };
 		F01A4E0E2DE15F6800349FD5 /* PDACPIPCIRootBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */; };
 		F01A4E102DE16EA500349FD5 /* acdarwin.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0F2DE16E9E00349FD5 /* acdarwin.h */; };
+		F02692622DED901800349FD5 /* PDACPICPUInterruptController.h in Headers */ = {isa = PBXBuildFile; fileRef = F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */; };
+		F02692632DED901800349FD5 /* PDACPICPUInterruptController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */; };
 		F043C1642DE30E1F00349FD5 /* PDACPIRTC.kext in CopyFiles */ = {isa = PBXBuildFile; fileRef = F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F043C16A2DE30E2E00349FD5 /* PDACPIRTC.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F043C1672DE30E2E00349FD5 /* PDACPIRTC.cpp */; };
 		F043C16B2DE30E2E00349FD5 /* PDACPIRTC.h in Headers */ = {isa = PBXBuildFile; fileRef = F043C1662DE30E2E00349FD5 /* PDACPIRTC.h */; };
@@ -525,6 +527,8 @@
 		F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPIPCIRootBridge.h; sourceTree = "<group>"; };
 		F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIPCIRootBridge.cpp; sourceTree = "<group>"; };
 		F01A4E0F2DE16E9E00349FD5 /* acdarwin.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = acdarwin.h; sourceTree = "<group>"; };
+		F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPICPUInterruptController.h; sourceTree = "<group>"; };
+		F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPICPUInterruptController.cpp; sourceTree = "<group>"; };
 		F043C14E2DE2CAF100349FD5 /* IOCPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOCPU.h; sourceTree = "<group>"; };
 		F043C14F2DE2CAF100349FD5 /* IOPolledInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOPolledInterface.h; sourceTree = "<group>"; };
 		F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDACPIRTC.kext; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -607,10 +611,12 @@
 				F01A4BA92DE139B500349FD5 /* AcpiOsLayer.cpp */,
 				F01A4A322DE12FE100349FD5 /* fadt_locator.cpp */,
 				F01A4A332DE12FE100349FD5 /* PDACPICPU.cpp */,
+				F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */,
 				F01A4A342DE12FE100349FD5 /* PDACPIPlatformExpert.cpp */,
 				F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */,
 				F01A4B5E2DE12FE100349FD5 /* pci_config_access.h */,
 				F01A4B5F2DE12FE100349FD5 /* PDACPICPU.h */,
+				F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */,
 				F01A4B602DE12FE100349FD5 /* PDACPIPlatformExpert.h */,
 				F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */,
 				F01A4BA52DE12FE100349FD5 /* ACPICA_LICENSE */,
@@ -1065,6 +1071,7 @@
 			files = (
 				F01A4B692DE12FE100349FD5 /* PDACPICPU.h in Headers */,
 				F01A4E102DE16EA500349FD5 /* acdarwin.h in Headers */,
+				F02692622DED901800349FD5 /* PDACPICPUInterruptController.h in Headers */,
 				F01A4B7A2DE12FE100349FD5 /* pci_config_access.h in Headers */,
 				F01A4B852DE12FE100349FD5 /* PDACPIPlatformExpert.h in Headers */,
 				F01A4E0E2DE15F6800349FD5 /* PDACPIPCIRootBridge.h in Headers */,
@@ -1318,6 +1325,7 @@
 				F01A4D7A2DE13E2500349FD5 /* tbxfload.c in Sources */,
 				F01A4D7B2DE13E2500349FD5 /* dsmethod.c in Sources */,
 				F01A4D7C2DE13E2500349FD5 /* utinit.c in Sources */,
+				F02692632DED901800349FD5 /* PDACPICPUInterruptController.cpp in Sources */,
 				F01A4D7D2DE13E2500349FD5 /* pstree.c in Sources */,
 				F01A4D7F2DE13E2500349FD5 /* rsinfo.c in Sources */,
 				F01A4D802DE13E2500349FD5 /* uttrack.c in Sources */,

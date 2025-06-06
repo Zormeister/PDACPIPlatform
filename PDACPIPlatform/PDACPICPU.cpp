@@ -36,6 +36,7 @@
 #include "PDACPICPU.h"
 #include <IOKit/IOLib.h>
 #include <i386/machine_routines.h>
+#include "PDACPICPUInterruptController.h"
 
 #ifndef SDK_IS_PRIVATE
 
@@ -49,6 +50,8 @@ ml_processor_register(
     boolean_t       boot_cpu,
     boolean_t       start);
 #endif
+
+PDACPICPUInterruptController *gCPUInterruptController;
 
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
@@ -70,12 +73,35 @@ bool PDACPICPU::start(IOService* provider)
     return true;
 }
 
-void PDACPICPU::initCPU(bool boot) {
+void PDACPICPU::initCPU(bool boot)
+{
     /* mmm... */
     this->setCPUState(kIOCPUStateRunning);
 }
 
-kern_return_t PDACPICPU::startCPU(vm_offset_t, vm_offset_t) {
+void PDACPICPU::haltCPU()
+{
+    IOLog("ACPICPU: halt\n");
+    this->setCPUState(kIOCPUStateStopped);
+    
+    if (this->getCPUNumber() > 0) {
+        processor_exit(this->machProcessor);
+    } else {
+        /* TODO: here, we should call into ACPICA to initiate the S<X> transaition */
+    }
+}
+
+void PDACPICPU::quiesceCPU() {
+    IOLog("ACPICPU: quiesce\n");
+}
+
+const OSSymbol *PDACPICPU::getCPUName()
+{
+    return this->getProvider()->copyName();
+}
+
+kern_return_t PDACPICPU::startCPU(vm_offset_t, vm_offset_t)
+{
     IOLog("ACPICPU: CPU start requested\n");
     return KERN_SUCCESS;
 }
