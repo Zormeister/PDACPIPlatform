@@ -47,6 +47,16 @@
 #define _COMPONENT ACPI_OS_SERVICES
 ACPI_MODULE_NAME("osdarwin");
 
+/* TODO:
+ * - AcpiOsCreateSemaphore
+ * - AcpiOsDeleteSemaphore
+ * - AcpiOsGetTimer
+ * - AcpiOsSignalSemaphore
+ * - AcpiOsWaitSemaphore
+ *
+ * PCI I/O accessing too.
+ */
+
 /* track memory allocations, otherwise all hell will break loose in XNU. */
 struct _memory_tag {
     UINT32 magic;
