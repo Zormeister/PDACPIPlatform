@@ -80,7 +80,8 @@ extern ACPI_STATUS AcpiOsExtInitialize(void);
 extern ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 extern ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
 
-ACPI_STATUS AcpiOsInitialize(void) {
+ACPI_STATUS AcpiOsInitialize(void)
+{
     PE_parse_boot_argn("acpi_os_log", &gAcpiOsPrintfFlags, sizeof(UInt32));
     return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
 }
@@ -90,19 +91,22 @@ ACPI_STATUS AcpiOsInitialize(void) {
 /* This is an XNU private API. I'd much rather a public function but that seems impossible. */
 extern vm_offset_t ml_vtophys(vm_offset_t);
 
-ACPI_STATUS AcpiOsGetPhysicalAddress(void *LogicalAddress, ACPI_PHYSICAL_ADDRESS *PhysicalAddress) {
+ACPI_STATUS AcpiOsGetPhysicalAddress(void *LogicalAddress, ACPI_PHYSICAL_ADDRESS *PhysicalAddress)
+{
     IOVirtualAddress va = (IOVirtualAddress)LogicalAddress;
     *PhysicalAddress = ml_vtophys(va); /* i sure do hope this is compatible */
     return AE_OK;
 }
 
 void *
-AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS Where, ACPI_SIZE Length) {
+AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS Where, ACPI_SIZE Length)
+{
     return AcpiOsExtMapMemory(Where, Length);
 }
 
 void *
-AcpiOsAllocate(ACPI_SIZE Size) {
+AcpiOsAllocate(ACPI_SIZE Size)
+{
     void *alloc = IOMalloc(Size + sizeof(struct _memory_tag));
     struct _memory_tag *mem = alloc;
     mem->magic = 'mema';
@@ -111,14 +115,16 @@ AcpiOsAllocate(ACPI_SIZE Size) {
 }
 
 void *
-AcpiOsAllocateZeroed(ACPI_SIZE Size) {
+AcpiOsAllocateZeroed(ACPI_SIZE Size)
+{
     void *alloc = AcpiOsAllocate(Size);
     memset(alloc, 0, Size);
     return alloc;
 }
 
 void
-AcpiOsFree(void *p) {
+AcpiOsFree(void *p)
+{
     struct _memory_tag *m = p - sizeof(struct _memory_tag);
     if (m->magic == 'mema') {
         IOFree(m, m->size);
@@ -158,8 +164,8 @@ ACPI_STATUS
 AcpiOsReadMemory(
     ACPI_PHYSICAL_ADDRESS   Address,
     UINT64                  *Value,
-    UINT32                  Width) {
-    
+    UINT32                  Width)
+{
     switch (Width) {
         case 8:
 #if __LP64__
@@ -201,7 +207,8 @@ extern uint32_t ml_port_io_read32(uint16_t ioport);
 ACPI_STATUS
 AcpiOsReadPort(ACPI_IO_ADDRESS Address,
                UINT32 *Value,
-               UINT32 Width) {
+               UINT32 Width)
+{
     switch (Width) {
         case 8:
             *Value = ml_port_io_read8(Address);
@@ -230,7 +237,8 @@ extern void ml_phys_write_double_64(addr64_t paddr, unsigned long long data);
 ACPI_STATUS
 AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
                   UINT64 Value,
-                  UINT32 Width) {
+                  UINT32 Width)
+{
     switch (Width) {
         case 8:
 #if __LP64__
@@ -272,7 +280,8 @@ extern void ml_port_io_write32(uint16_t ioport, uint32_t val);
 ACPI_STATUS
 AcpiOsWritePort(ACPI_IO_ADDRESS Address,
                 UINT32 Value,
-                UINT32 Width) {
+                UINT32 Width)
+{
     switch (Width) {
         case 8:
             ml_port_io_write8(Address, (UINT8)Value);
@@ -288,19 +297,40 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address,
     }
 }
 
+ACPI_STATUS
+AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
+                           UINT32 Register,
+                           UINT64 *Value,
+                           UINT32 Width)
+{
+    
+}
+
 #pragma mark OS time related functions
 
-void AcpiOsSleep(UINT64 ms) {
+void AcpiOsSleep(UINT64 ms)
+{
     IOSleep((UINT32)ms);
 }
 
-void AcpiOsStall(UINT32 us) {
+void AcpiOsStall(UINT32 us)
+{
     IODelay(us);
+}
+
+/* ZORMEISTER: I think? - 'The current value of the system timer in 100-nanosecond units. '*/
+UInt64 AcpiOsGetTimer(void)
+{
+    UInt64 abs = mach_absolute_time();
+    UInt64 ns = 0;
+    absolutetime_to_nanoseconds(abs, &ns);
+    return (ns / 100);
 }
 
 #pragma mark Lock functions
 
-ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock) {
+ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock)
+{
     IOSimpleLock *lck = IOSimpleLockAlloc();
     if (!lck) {
         return AE_NO_MEMORY;
@@ -311,51 +341,120 @@ ACPI_STATUS AcpiOsCreateLock(ACPI_SPINLOCK *Lock) {
     return AE_OK;
 };
 
-void AcpiOsDeleteLock(ACPI_SPINLOCK Lock) {
+void AcpiOsDeleteLock(ACPI_SPINLOCK Lock)
+{
     IOSimpleLockFree(Lock);
 }
 
 
 /* 'May be called from interrupt handlers, GPE handlers, and Fixed event handlers.' */
 /* Fun way of saying I should disable interrupts until the lock is released. */
-ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Lock) {
+ACPI_CPU_FLAGS AcpiOsAcquireLock(ACPI_SPINLOCK Lock)
+{
     ml_set_interrupts_enabled(false);
     IOSimpleLockLock(Lock);
     return 0;
 }
 
-void AcpiOsReleaseLock(ACPI_SPINLOCK Lock, ACPI_CPU_FLAGS Flags) {
+void AcpiOsReleaseLock(ACPI_SPINLOCK Lock, ACPI_CPU_FLAGS Flags)
+{
     IOSimpleLockUnlock(Lock);
     ml_set_interrupts_enabled(true);
 }
 
+#pragma mark Semaphore code
+
+ACPI_STATUS AcpiOsCreateSemaphore(UInt32 InitialUnits, UInt32 MaxUnits, ACPI_SEMAPHORE *Handle)
+{
+    if (Handle == NULL) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (semaphore_create(current_task(), Handle, 0, MaxUnits) == KERN_SUCCESS) {
+        return AE_OK;
+    }
+
+    return AE_NO_MEMORY;
+}
+
+ACPI_STATUS AcpiOsDestroySemaphore(ACPI_SEMAPHORE Semaphore)
+{
+    if (Semaphore == NULL) {
+        return AE_BAD_PARAMETER;
+    }
+
+    semaphore_destroy(current_task(), Semaphore);
+
+    return AE_OK;
+}
+
+ACPI_STATUS AcpiOsWaitSemaphore(ACPI_SEMAPHORE Semaphore, UInt32 Units, UInt16 Timeout)
+{
+    if (Semaphore == NULL) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Timeout == 0xFFFF) {
+        if (semaphore_wait(Semaphore) != KERN_SUCCESS) {
+            return AE_TIME;
+        }
+    } else {
+        if (semaphore_wait_deadline(Semaphore, (Timeout * NSEC_PER_MSEC)) != KERN_SUCCESS) {
+            return AE_TIME;
+        }
+    }
+    
+    return AE_OK;
+}
+
+ACPI_STATUS AcpiOsSignalSemaphore(ACPI_SEMAPHORE Semaphore, UInt32 Units)
+{
+    if (Semaphore == NULL) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Units > 1) {
+        semaphore_signal_all(Semaphore);
+    } else {
+        semaphore_signal(Semaphore);
+    }
+    
+    return AE_OK;
+}
+
+
 #pragma mark thread related stuff
 
 ACPI_THREAD_ID
-AcpiOsGetThreadId(void) {
+AcpiOsGetThreadId(void)
+{
     return thread_tid(current_thread()); /* I think? */
 }
 
-ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context) {
+ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context)
+{
     return AcpiOsExtExecute(Type, Function, Context);
 }
 
 
 #pragma mark Override functions - they do nothing.
 
-ACPI_STATUS AcpiOsPredefinedOverride(const ACPI_PREDEFINED_NAMES *PredefinedObject, ACPI_STRING *NewValue) {
+ACPI_STATUS AcpiOsPredefinedOverride(const ACPI_PREDEFINED_NAMES *PredefinedObject, ACPI_STRING *NewValue)
+{
     *NewValue = NULL;
     return AE_OK;
 }
 
-ACPI_STATUS AcpiOsTableOverride(ACPI_TABLE_HEADER *ExistingTable, ACPI_TABLE_HEADER **NewTable) {
+ACPI_STATUS AcpiOsTableOverride(ACPI_TABLE_HEADER *ExistingTable, ACPI_TABLE_HEADER **NewTable)
+{
     *NewTable = NULL;
     return AE_OK;
 }
 
 #pragma mark Misc. OSL services
 
-ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info) {
+ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info)
+{
     switch (Function) {
         case ACPI_SIGNAL_BREAKPOINT: {
             if (Info) {
@@ -385,14 +484,16 @@ ACPI_STATUS AcpiOsSignal(UINT32 Function, void *Info) {
     return AE_OK;
 }
 
-void AcpiOsPrintf(const char *fmt, ...) {
+void AcpiOsPrintf(const char *fmt, ...)
+{
     va_list va;
     va_start(va, fmt);
     AcpiOsVprintf(fmt, va);
     va_end(va);
 }
 
-void AcpiOsVprintf(const char *fmt, va_list list) {
+void AcpiOsVprintf(const char *fmt, va_list list)
+{
     char msg[4096]; /* I don't think a message will exceed this size in one go. */
     vsnprintf(msg, 4096, fmt, list);
 

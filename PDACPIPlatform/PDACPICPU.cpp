@@ -56,7 +56,7 @@ PDACPICPUInterruptController *gCPUInterruptController;
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
 
-bool PDACPICPU::start(IOService* provider)
+bool PDACPICPU::start(IOService *provider)
 {
     IOLog("PDACPICPU::start\n");
     if (!super::start(provider))
@@ -68,6 +68,11 @@ bool PDACPICPU::start(IOService* provider)
     OSNumber *lapic = OSDynamicCast(OSNumber, provider->getProperty("processor-lapic"));
     OSNumber *id = OSDynamicCast(OSNumber, provider->getProperty("processor-id"));
     
+    /* ZORMEISTER: this is a nightmare. */
+    ml_processor_register(NULL, lapic->unsigned32BitValue(), &machProcessor, false, false);
+    
+    /* ^ so when the hell do i 'boot' the CPU? when do i 'start' the CPU? */
+    /* do i call ml_processor_register again? what */
 
     registerService();
     return true;

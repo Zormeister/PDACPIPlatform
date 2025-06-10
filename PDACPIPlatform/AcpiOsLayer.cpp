@@ -67,12 +67,14 @@ IOLock *gAcpiOsExtMemoryMapLock;
 OSSet *gAcpiOsExtMemoryMapSet;
 OSCollectionIterator *gAcpiOsExtMemoryMapIterator;
 
-struct _iocmdq_callback_data {
+struct _iocmdq_callback_data
+{
     ACPI_OSD_EXEC_CALLBACK Callback;
     void *Context;
 };
 
-IOReturn AcpiOsThreadDispatch(OSObject *, void *field0, void *, void *, void *) {
+IOReturn AcpiOsThreadDispatch(OSObject *, void *field0, void *, void *, void *)
+{
     _iocmdq_callback_data *d = (_iocmdq_callback_data *)field0;
     ml_set_interrupts_enabled(false); /* disable interrupts */
     d->Callback(d->Context);
@@ -83,7 +85,8 @@ IOReturn AcpiOsThreadDispatch(OSObject *, void *field0, void *, void *, void *) 
     return kIOReturnSuccess;
 }
 
-ACPI_STATUS AcpiOsExtInitialize(void) {
+ACPI_STATUS AcpiOsExtInitialize(void)
+{
     /* Initialize local resources. */
     gAcpiOsExtMemoryMapLock = IOLockAlloc();
     gAcpiOsExtMemoryMapSet = OSSet::withCapacity(4); /* OSSet's can expand if need be, right? */
@@ -103,7 +106,8 @@ ACPI_STATUS AcpiOsExtInitialize(void) {
     return AE_OK;
 }
 
-void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS addr, ACPI_SIZE size) {
+void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS addr, ACPI_SIZE size)
+{
     IOMemoryDescriptor *desc = IOMemoryDescriptor::withAddressRange(addr, size, kIOMemoryDirectionInOut | kIOMemoryMapperNone, kernel_task);
     if (desc) {
         IOMemoryMap *map = desc->map();
@@ -120,7 +124,8 @@ void *AcpiOsExtMapMemory(ACPI_PHYSICAL_ADDRESS addr, ACPI_SIZE size) {
     return NULL;
 }
 
-void AcpiOsExtUnmapMemory(void *p, ACPI_SIZE size) {
+void AcpiOsExtUnmapMemory(void *p, ACPI_SIZE size)
+{
     IOVirtualAddress va = (IOVirtualAddress)p;
 
     IOLockLock(gAcpiOsExtMemoryMapLock);
@@ -136,7 +141,8 @@ void AcpiOsExtUnmapMemory(void *p, ACPI_SIZE size) {
 
 
 /* Locate the EFI configuration table */
-ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void) {
+ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void)
+{
     EFI_PHYSICAL_ADDRESS tableAddr = 0;
 #if __LP64__
     EFI_CONFIGURATION_TABLE_64 tbl;
@@ -173,7 +179,8 @@ ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void) {
     return 0;
 }
 
-ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context) {
+ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context)
+{
     _iocmdq_callback_data *d = (_iocmdq_callback_data *)IOMalloc(sizeof(_iocmdq_callback_data));
     d->Callback = Function;
     d->Context = Context;
@@ -181,9 +188,14 @@ ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Func
     return AE_OK;
 }
 
-void AcpiOsExtWaitEventsComplete(void) {
+void AcpiOsExtWaitEventsComplete(void)
+{
     /* How do I check that my IOCommandGate has finished all of it's runAction calls? */
     return;
+}
+
+ACPI_STATUS AcpiOsReadPCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 *Value, UInt32 Width) {
+    return AE_OK;
 }
 
 /*

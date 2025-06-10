@@ -41,6 +41,8 @@
 
 class PDACPIPlatformExpert : public IOACPIPlatformExpert {
     OSDeclareDefaultStructors(PDACPIPlatformExpert);
+    
+    friend class PDACPICPU;
 
 public:
     /* IOService overrides */
@@ -99,6 +101,7 @@ private:
     bool catalogACPITables(void);
     bool fetchPCIData(void);
     void createCPUNubs(void); /* walk MADT and enumerate the CPU devices/objects available. */
+    void systemStateChange(void);
     
 private:
     OSDictionary *m_tableDict;
