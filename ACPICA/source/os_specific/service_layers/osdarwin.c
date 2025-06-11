@@ -31,11 +31,12 @@
 * PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
 * Created by github.com/csekel (InSaneDarwin)
 *
-* This specific file was created by Zormeister
+* This specific file was created by Zormeister w/ csekel (InSaneDarwin) adjustments
 */
 
 /* standard includes... */
 #include "acpica/acpi.h"
+#include "acpica/actables.h"  /* For MCFG table definitions */
 
 #include <mach/semaphore.h>
 #include <machine/machine_routines.h>
@@ -55,6 +56,7 @@ ACPI_MODULE_NAME("osdarwin");
  * - AcpiOsWaitSemaphore - DONE
  *
  * PCI I/O accessing too - DONE Implemented
+ * Cache functions - DONE added Implementation
  */
 
 /* track memory allocations, otherwise all hell will break loose in XNU. */
@@ -62,6 +64,26 @@ struct _memory_tag {
     UINT32 magic;
     ACPI_SIZE size;
 };
+
+/* Cache management structures for ACPICA object caching */
+struct _cache_object {
+    struct _cache_object *next;
+    /* Object data follows this header */
+};
+
+struct _acpi_cache {
+    UINT32 magic;
+    char name[16];
+    ACPI_SIZE object_size;
+    UINT16 max_depth;
+    UINT16 current_depth;
+    struct _cache_object *list_head;
+    IOSimpleLock *lock;
+    UINT32 requests;
+    UINT32 hits;
+};
+
+#define ACPI_CACHE_MAGIC 'cach'
 
 #define ACPI_OS_PRINTF_USE_KPRINTF 0x1
 #define ACPI_OS_PRINTF_USE_IOLOG   0x2
@@ -82,13 +104,94 @@ extern ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBA
 
 ACPI_STATUS AcpiOsInitialize(void)
 {
+    ACPI_STATUS status;
+    
     PE_parse_boot_argn("acpi_os_log", &gAcpiOsPrintfFlags, sizeof(UInt32));
-    return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
+    
+    status = AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
+    if (ACPI_FAILURE(status)) {
+        return status;
+    }
+    
+    /* Initialize ECAM support - this will be done lazily on first PCI access if ACPI tables aren't ready yet */
+    /* AcpiOsInitializePciEcam(); */
+    
+    return AE_OK;
+}
+
+/* AcpiOsValidateCache (Debug helper) - Validate cache integrity (debug builds only) */
+#if DEBUG
+ACPI_STATUS
+AcpiOsValidateCache(ACPI_CACHE_T *Cache)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    struct _cache_object *object;
+    UINT16 count = 0;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC) {
+        AcpiOsPrintf("ACPI: Invalid cache object\n");
+        return AE_BAD_PARAMETER;
+    }
+    
+    IOSimpleLockLock(cache->lock);
+    
+    /* Count objects in cache */
+    object = cache->list_head;
+    while (object && count < cache->max_depth + 10) { /* Prevent infinite loops */
+        count++;
+        object = object->next;
+    }
+    
+    if (count != cache->current_depth) {
+        AcpiOsPrintf("ACPI: Cache '%s' depth mismatch: reported %d, actual %d\n",
+                     cache->name, cache->current_depth, count);
+        IOSimpleLockUnlock(cache->lock);
+        return AE_ERROR;
+    }
+    
+    IOSimpleLockUnlock(cache->lock);
+    
+    AcpiOsPrintf("ACPI: Cache '%s' validated: %d/%d objects, %u requests, %u hits\n",
+                 cache->name, cache->current_depth, cache->max_depth,
+                 cache->requests, cache->hits);
+    
+    return AE_OK;
+}
+#endif
+
+/* AcpiOsGetCacheStatistics (Debug helper) -  Get cache statistics */
+ACPI_STATUS
+AcpiOsGetCacheStatistics(ACPI_CACHE_T *Cache, UINT32 *Requests, UINT32 *Hits)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Requests) {
+        *Requests = cache->requests;
+    }
+    
+    if (Hits) {
+        *Hits = cache->hits;
+    }
+    
+    return AE_OK;
 }
 
 ACPI_STATUS AcpiOsTerminate(void)
 {
     /* Cleanup any OS-specific resources if needed */
+    gPciEcamInitialized = FALSE;
+    gPciEcamBase = 0;
+    gPciEcamSize = 0;
+    gPciStartBus = 0;
+    gPciEndBus = 0;
+    
+    /* Note: ACPICA should clean up its own caches via AcpiOsDeleteCache() */
+    /* but we could add cache leak detection here in debug builds */
+    
     return AE_OK;
 }
 
@@ -314,27 +417,154 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address,
     }
 }
 
-/* PCI I/O Access Implementation - COMPLETED */
-ACPI_STATUS
-AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
-                           UINT32 Register,
-                           UINT64 *Value,
-                           UINT32 Width)
+/* PCI Configuration Space Access - MMIO and Port I/O Implementation */
+
+/* Global variables for ECAM/MMIO support */
+static ACPI_PHYSICAL_ADDRESS gPciEcamBase = 0;
+static UINT32 gPciEcamSize = 0;
+static UINT16 gPciStartBus = 0;
+static UINT16 gPciEndBus = 0;
+static boolean_t gPciEcamInitialized = FALSE;
+
+/* Initialize ECAM (Enhanced Configuration Access Mechanism) support */
+static ACPI_STATUS
+AcpiOsInitializePciEcam(void)
+{
+    ACPI_TABLE_MCFG *mcfg_table = NULL;
+    ACPI_STATUS status;
+    
+    if (gPciEcamInitialized) {
+        return AE_OK;
+    }
+    
+    /* Try to get MCFG table for ECAM base address */
+    status = AcpiGetTable(ACPI_SIG_MCFG, 0, (ACPI_TABLE_HEADER **)&mcfg_table);
+    if (ACPI_SUCCESS(status) && mcfg_table) {
+        ACPI_MCFG_ALLOCATION *allocation;
+        
+        /* Get first allocation entry */
+        allocation = (ACPI_MCFG_ALLOCATION *)((UINT8 *)mcfg_table + sizeof(ACPI_TABLE_MCFG));
+        
+        if ((UINT8 *)allocation < (UINT8 *)mcfg_table + mcfg_table->Header.Length) {
+            gPciEcamBase = allocation->Address;
+            gPciStartBus = allocation->PciSegment;  /* Actually start bus */
+            gPciEndBus = allocation->EndBusNumber;
+            gPciEcamSize = (gPciEndBus - gPciStartBus + 1) * 256 * 4096; /* Each bus has 256 devices, 4KB each */
+            
+#if DEBUG
+            AcpiOsPrintf("ACPI: ECAM base 0x%llX, buses %d-%d, size 0x%X\n", 
+                        gPciEcamBase, gPciStartBus, gPciEndBus, gPciEcamSize);
+#endif
+        }
+    }
+    
+    gPciEcamInitialized = TRUE;
+    return AE_OK;
+}
+
+/* MMIO-based PCI configuration space access */
+static ACPI_STATUS
+AcpiOsReadPciConfigMmio(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 *Value, UINT32 Width)
+{
+    ACPI_PHYSICAL_ADDRESS config_addr;
+    void *mapped_addr;
+    UINT64 data = 0;
+    
+    /* Calculate ECAM address: Base + (Bus << 20) + (Device << 15) + (Function << 12) + Register */
+    config_addr = gPciEcamBase + 
+                  ((UINT64)PciId->Bus << 20) + 
+                  ((UINT64)PciId->Device << 15) + 
+                  ((UINT64)PciId->Function << 12) + 
+                  Register;
+    
+    /* Map the configuration space */
+    mapped_addr = AcpiOsMapMemory(config_addr, Width / 8);
+    if (!mapped_addr) {
+        return AE_NO_MEMORY;
+    }
+    
+    /* Read the value */
+    switch (Width) {
+        case 8:
+            data = *(UINT8 *)mapped_addr;
+            break;
+        case 16:
+            data = *(UINT16 *)mapped_addr;
+            break;
+        case 32:
+            data = *(UINT32 *)mapped_addr;
+            break;
+        default:
+            AcpiOsUnmapMemory(mapped_addr, Width / 8);
+            return AE_BAD_PARAMETER;
+    }
+    
+    *Value = data;
+    AcpiOsUnmapMemory(mapped_addr, Width / 8);
+    
+#if DEBUG
+    AcpiOsPrintf("PCI MMIO read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+                 PciId->Bus, PciId->Device, PciId->Function, 
+                 Register, Width, (UINT32)*Value);
+#endif
+    
+    return AE_OK;
+}
+
+static ACPI_STATUS
+AcpiOsWritePciConfigMmio(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 Value, UINT32 Width)
+{
+    ACPI_PHYSICAL_ADDRESS config_addr;
+    void *mapped_addr;
+    
+#if DEBUG
+    AcpiOsPrintf("PCI MMIO write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+                 PciId->Bus, PciId->Device, PciId->Function, 
+                 Register, Width, (UINT32)Value);
+#endif
+    
+    /* Calculate ECAM address */
+    config_addr = gPciEcamBase + 
+                  ((UINT64)PciId->Bus << 20) + 
+                  ((UINT64)PciId->Device << 15) + 
+                  ((UINT64)PciId->Function << 12) + 
+                  Register;
+    
+    /* Map the configuration space */
+    mapped_addr = AcpiOsMapMemory(config_addr, Width / 8);
+    if (!mapped_addr) {
+        return AE_NO_MEMORY;
+    }
+    
+    /* Write the value */
+    switch (Width) {
+        case 8:
+            *(UINT8 *)mapped_addr = (UINT8)Value;
+            break;
+        case 16:
+            *(UINT16 *)mapped_addr = (UINT16)Value;
+            break;
+        case 32:
+            *(UINT32 *)mapped_addr = (UINT32)Value;
+            break;
+        default:
+            AcpiOsUnmapMemory(mapped_addr, Width / 8);
+            return AE_BAD_PARAMETER;
+    }
+    
+    AcpiOsUnmapMemory(mapped_addr, Width / 8);
+    return AE_OK;
+}
+
+/* Legacy Port I/O based PCI configuration space access */
+static ACPI_STATUS
+AcpiOsReadPciConfigPortIo(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 *Value, UINT32 Width)
 {
     UINT32 pci_address;
     UINT32 data = 0;
     
-    if (!PciId || !Value) {
-        return AE_BAD_PARAMETER;
-    }
-    
-    if (Width != 8 && Width != 16 && Width != 32) {
-        return AE_BAD_PARAMETER;
-    }
-    
-    /* Construct PCI configuration address */
+    /* Construct PCI configuration address for legacy method */
     pci_address = (1U << 31) |                  /* Enable bit */
-                  (PciId->Segment << 16) |      /* Segment (if supported) */
                   (PciId->Bus << 16) |          /* Bus number */
                   (PciId->Device << 11) |       /* Device number */
                   (PciId->Function << 8) |      /* Function number */
@@ -359,7 +589,7 @@ AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
     *Value = data;
     
 #if DEBUG
-    AcpiOsPrintf("PCI read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+    AcpiOsPrintf("PCI Port I/O read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
                  PciId->Bus, PciId->Device, PciId->Function, 
                  Register, Width, (UINT32)*Value);
 #endif
@@ -367,31 +597,19 @@ AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
     return AE_OK;
 }
 
-ACPI_STATUS
-AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId,
-                            UINT32 Register,
-                            UINT64 Value,
-                            UINT32 Width)
+static ACPI_STATUS
+AcpiOsWritePciConfigPortIo(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 Value, UINT32 Width)
 {
     UINT32 pci_address;
     
-    if (!PciId) {
-        return AE_BAD_PARAMETER;
-    }
-    
-    if (Width != 8 && Width != 16 && Width != 32) {
-        return AE_BAD_PARAMETER;
-    }
-    
 #if DEBUG
-    AcpiOsPrintf("PCI write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+    AcpiOsPrintf("PCI Port I/O write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
                  PciId->Bus, PciId->Device, PciId->Function, 
                  Register, Width, (UINT32)Value);
 #endif
     
     /* Construct PCI configuration address */
     pci_address = (1U << 31) |                  /* Enable bit */
-                  (PciId->Segment << 16) |      /* Segment (if supported) */
                   (PciId->Bus << 16) |          /* Bus number */
                   (PciId->Device << 11) |       /* Device number */
                   (PciId->Function << 8) |      /* Function number */
@@ -414,6 +632,63 @@ AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId,
     }
     
     return AE_OK;
+}
+
+/* Main PCI Configuration Space Access Functions */
+ACPI_STATUS
+AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
+                           UINT32 Register,
+                           UINT64 *Value,
+                           UINT32 Width)
+{
+    if (!PciId || !Value) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Width != 8 && Width != 16 && Width != 32) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    /* Initialize ECAM support if not done already */
+    AcpiOsInitializePciEcam();
+    
+    /* Try MMIO/ECAM first if available and bus is in range */
+    if (gPciEcamBase != 0 && 
+        PciId->Bus >= gPciStartBus && 
+        PciId->Bus <= gPciEndBus) {
+        return AcpiOsReadPciConfigMmio(PciId, Register, Value, Width);
+    }
+    
+    /* Fall back to legacy Port I/O method */
+    return AcpiOsReadPciConfigPortIo(PciId, Register, Value, Width);
+}
+
+ACPI_STATUS
+AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId,
+                            UINT32 Register,
+                            UINT64 Value,
+                            UINT32 Width)
+{
+    if (!PciId) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Width != 8 && Width != 16 && Width != 32) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    /* Initialize ECAM support if not done already */
+    AcpiOsInitializePciEcam();
+    
+    /* Try MMIO/ECAM first if available and bus is in range */
+    if (gPciEcamBase != 0 && 
+        PciId->Bus >= gPciStartBus && 
+        PciId->Bus <= gPciEndBus) {
+        return AcpiOsWritePciConfigMmio(PciId, Register, Value, Width);
+    }
+    
+    /* Fall back to legacy Port I/O method */
+    return AcpiOsWritePciConfigPortIo(PciId, Register, Value, Width);
 }
 
 #pragma mark OS time related functions
@@ -537,6 +812,227 @@ ACPI_STATUS AcpiOsSignalSemaphore(ACPI_SEMAPHORE Semaphore, UInt32 Units)
     return AE_OK;
 }
 
+
+#pragma mark Cache management functions
+
+/* adjustments by csekel (InSaneDarwin)
+ * ACPICA Object Cache Implementation for Darwin
+ * 
+ * ACPICA uses object caching to improve performance by reusing frequently
+ * allocated/freed objects like parse tree nodes, namespace entries, etc.
+ *
+ * Cache objects are stored as a simple linked list (LIFO) for fast
+ * acquire/release operations. Each cache maintains its own lock and
+ * statistics to minimize contention between different object types.
+ */
+
+/* AcpiOsCreateCache - Create a cache object for ACPICA */
+ACPI_STATUS
+AcpiOsCreateCache(char *CacheName,
+                  UINT16 ObjectSize,
+                  UINT16 MaxDepth,
+                  ACPI_CACHE_T **ReturnCache)
+{
+    struct _acpi_cache *cache;
+    
+    if (!CacheName || !ReturnCache || ObjectSize == 0) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    /* Allocate cache structure */
+    cache = (struct _acpi_cache *)IOMalloc(sizeof(struct _acpi_cache));
+    if (!cache) {
+        return AE_NO_MEMORY;
+    }
+    
+    /* Initialize cache structure */
+    memset(cache, 0, sizeof(struct _acpi_cache));
+    cache->magic = ACPI_CACHE_MAGIC;
+    strncpy(cache->name, CacheName, sizeof(cache->name) - 1);
+    cache->name[sizeof(cache->name) - 1] = '\0';
+    cache->object_size = ObjectSize;
+    cache->max_depth = MaxDepth;
+    cache->current_depth = 0;
+    cache->list_head = NULL;
+    cache->requests = 0;
+    cache->hits = 0;
+    
+    /* Create lock for thread safety */
+    cache->lock = IOSimpleLockAlloc();
+    if (!cache->lock) {
+        IOFree(cache, sizeof(struct _acpi_cache));
+        return AE_NO_MEMORY;
+    }
+    
+    *ReturnCache = (ACPI_CACHE_T *)cache;
+    
+#if DEBUG
+    AcpiOsPrintf("ACPI: Created cache '%s', object size %d, max depth %d\n",
+                 CacheName, ObjectSize, MaxDepth);
+#endif
+    
+    return AE_OK;
+}
+
+/* AcpiOsDeleteCache - Free all objects within a cache and delete the cache object */
+ACPI_STATUS
+AcpiOsDeleteCache(ACPI_CACHE_T *Cache)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    struct _cache_object *object, *next;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC) {
+        return AE_BAD_PARAMETER;
+    }
+    
+#if DEBUG
+    AcpiOsPrintf("ACPI: Deleting cache '%s', requests %u, hits %u (%.1f%%)\n",
+                 cache->name, cache->requests, cache->hits,
+                 cache->requests ? (cache->hits * 100.0 / cache->requests) : 0.0);
+#endif
+    
+    /* Purge all objects from cache */
+    IOSimpleLockLock(cache->lock);
+    
+    object = cache->list_head;
+    while (object) {
+        next = object->next;
+        IOFree(object, sizeof(struct _cache_object) + cache->object_size);
+        object = next;
+    }
+    
+    IOSimpleLockUnlock(cache->lock);
+    
+    /* Free the lock and cache structure */
+    IOSimpleLockFree(cache->lock);
+    cache->magic = 0; /* Invalidate */
+    IOFree(cache, sizeof(struct _acpi_cache));
+    
+    return AE_OK;
+}
+
+/* AcpiOsPurgeCache - Free all objects within a cache */
+ACPI_STATUS
+AcpiOsPurgeCache(ACPI_CACHE_T *Cache)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    struct _cache_object *object, *next;
+    UINT16 purged = 0;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    IOSimpleLockLock(cache->lock);
+    
+    object = cache->list_head;
+    while (object) {
+        next = object->next;
+        IOFree(object, sizeof(struct _cache_object) + cache->object_size);
+        object = next;
+        purged++;
+    }
+    
+    cache->list_head = NULL;
+    cache->current_depth = 0;
+    
+    IOSimpleLockUnlock(cache->lock);
+    
+#if DEBUG
+    AcpiOsPrintf("ACPI: Purged %d objects from cache '%s'\n", purged, cache->name);
+#endif
+    
+    return AE_OK;
+}
+
+/* AcpiOsAcquireObject - Get an object from the cache or allocate a new one */
+void *
+AcpiOsAcquireObject(ACPI_CACHE_T *Cache)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    struct _cache_object *object;
+    void *return_object = NULL;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC) {
+        return NULL;
+    }
+    
+    IOSimpleLockLock(cache->lock);
+    
+    cache->requests++;
+    
+    /* Try to get an object from the cache first */
+    if (cache->list_head) {
+        object = cache->list_head;
+        cache->list_head = object->next;
+        cache->current_depth--;
+        cache->hits++;
+        
+        /* Return pointer to data area (after the header) */
+        return_object = (void *)((char *)object + sizeof(struct _cache_object));
+        
+        IOSimpleLockUnlock(cache->lock);
+        
+        /* Clear the object data */
+        memset(return_object, 0, cache->object_size);
+        
+        return return_object;
+    }
+    
+    IOSimpleLockUnlock(cache->lock);
+    
+    /* Cache is empty, allocate a new object */
+    object = (struct _cache_object *)IOMalloc(sizeof(struct _cache_object) + cache->object_size);
+    if (!object) {
+        return NULL;
+    }
+    
+    /* Clear the entire object */
+    memset(object, 0, sizeof(struct _cache_object) + cache->object_size);
+    
+    /* Return pointer to data area */
+    return_object = (void *)((char *)object + sizeof(struct _cache_object));
+    
+    return return_object;
+}
+
+/* AcpiOsReleaseObject - Release an object back to the cache */
+ACPI_STATUS
+AcpiOsReleaseObject(ACPI_CACHE_T *Cache, void *Object)
+{
+    struct _acpi_cache *cache = (struct _acpi_cache *)Cache;
+    struct _cache_object *cache_object;
+    
+    if (!cache || cache->magic != ACPI_CACHE_MAGIC || !Object) {
+        /* If cache is invalid, just free the object */
+        if (Object) {
+            cache_object = (struct _cache_object *)((char *)Object - sizeof(struct _cache_object));
+            IOFree(cache_object, sizeof(struct _cache_object) + (cache ? cache->object_size : 0));
+        }
+        return AE_BAD_PARAMETER;
+    }
+    
+    /* Get pointer to cache object header */
+    cache_object = (struct _cache_object *)((char *)Object - sizeof(struct _cache_object));
+    
+    IOSimpleLockLock(cache->lock);
+    
+    /* If cache is full, just free the object */
+    if (cache->current_depth >= cache->max_depth) {
+        IOSimpleLockUnlock(cache->lock);
+        IOFree(cache_object, sizeof(struct _cache_object) + cache->object_size);
+        return AE_OK;
+    }
+    
+    /* Add object back to cache */
+    cache_object->next = cache->list_head;
+    cache->list_head = cache_object;
+    cache->current_depth++;
+    
+    IOSimpleLockUnlock(cache->lock);
+    
+    return AE_OK;
+}
 
 #pragma mark thread related stuff
 
