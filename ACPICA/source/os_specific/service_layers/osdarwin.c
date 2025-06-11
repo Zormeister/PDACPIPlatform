@@ -48,13 +48,13 @@
 ACPI_MODULE_NAME("osdarwin");
 
 /* TODO:
- * - AcpiOsCreateSemaphore
- * - AcpiOsDeleteSemaphore
- * - AcpiOsGetTimer
- * - AcpiOsSignalSemaphore
- * - AcpiOsWaitSemaphore
+ * - AcpiOsCreateSemaphore - DONE
+ * - AcpiOsDeleteSemaphore - DONE (implemented as AcpiOsDestroySemaphore)
+ * - AcpiOsGetTimer - DONE
+ * - AcpiOsSignalSemaphore - DONE
+ * - AcpiOsWaitSemaphore - DONE
  *
- * PCI I/O accessing too.
+ * PCI I/O accessing too - DONE Implemented
  */
 
 /* track memory allocations, otherwise all hell will break loose in XNU. */
@@ -86,6 +86,17 @@ ACPI_STATUS AcpiOsInitialize(void)
     return AcpiOsExtInitialize(); /* dispatch to AcpiOsLayer.cpp to establish the memory map tracking + PCI access. */
 }
 
+ACPI_STATUS AcpiOsTerminate(void)
+{
+    /* Cleanup any OS-specific resources if needed */
+    return AE_OK;
+}
+
+ACPI_PHYSICAL_ADDRESS AcpiOsGetRootPointer(void)
+{
+    return AcpiOsExtGetRootPointer();
+}
+
 #pragma mark Memory-related services
 
 /* This is an XNU private API. I'd much rather a public function but that seems impossible. */
@@ -102,6 +113,12 @@ void *
 AcpiOsMapMemory(ACPI_PHYSICAL_ADDRESS Where, ACPI_SIZE Length)
 {
     return AcpiOsExtMapMemory(Where, Length);
+}
+
+void
+AcpiOsUnmapMemory(void *LogicalAddress, ACPI_SIZE Length)
+{
+    AcpiOsExtUnmapMemory(LogicalAddress);
 }
 
 void *
@@ -297,13 +314,106 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address,
     }
 }
 
+/* PCI I/O Access Implementation - COMPLETED */
 ACPI_STATUS
 AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
                            UINT32 Register,
                            UINT64 *Value,
                            UINT32 Width)
 {
+    UINT32 pci_address;
+    UINT32 data = 0;
     
+    if (!PciId || !Value) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Width != 8 && Width != 16 && Width != 32) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    /* Construct PCI configuration address */
+    pci_address = (1U << 31) |                  /* Enable bit */
+                  (PciId->Segment << 16) |      /* Segment (if supported) */
+                  (PciId->Bus << 16) |          /* Bus number */
+                  (PciId->Device << 11) |       /* Device number */
+                  (PciId->Function << 8) |      /* Function number */
+                  (Register & 0xFC);            /* Register (aligned to 32-bit) */
+    
+    /* Write address to CONFIG_ADDRESS port (0xCF8) */
+    ml_port_io_write32(0xCF8, pci_address);
+    
+    /* Read data from CONFIG_DATA port (0xCFC) with appropriate offset */
+    switch (Width) {
+        case 8:
+            data = ml_port_io_read8(0xCFC + (Register & 3));
+            break;
+        case 16:
+            data = ml_port_io_read16(0xCFC + (Register & 2));
+            break;
+        case 32:
+            data = ml_port_io_read32(0xCFC);
+            break;
+    }
+    
+    *Value = data;
+    
+#if DEBUG
+    AcpiOsPrintf("PCI read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+                 PciId->Bus, PciId->Device, PciId->Function, 
+                 Register, Width, (UINT32)*Value);
+#endif
+    
+    return AE_OK;
+}
+
+ACPI_STATUS
+AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId,
+                            UINT32 Register,
+                            UINT64 Value,
+                            UINT32 Width)
+{
+    UINT32 pci_address;
+    
+    if (!PciId) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    if (Width != 8 && Width != 16 && Width != 32) {
+        return AE_BAD_PARAMETER;
+    }
+    
+#if DEBUG
+    AcpiOsPrintf("PCI write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
+                 PciId->Bus, PciId->Device, PciId->Function, 
+                 Register, Width, (UINT32)Value);
+#endif
+    
+    /* Construct PCI configuration address */
+    pci_address = (1U << 31) |                  /* Enable bit */
+                  (PciId->Segment << 16) |      /* Segment (if supported) */
+                  (PciId->Bus << 16) |          /* Bus number */
+                  (PciId->Device << 11) |       /* Device number */
+                  (PciId->Function << 8) |      /* Function number */
+                  (Register & 0xFC);            /* Register (aligned to 32-bit) */
+    
+    /* Write address to CONFIG_ADDRESS port (0xCF8) */
+    ml_port_io_write32(0xCF8, pci_address);
+    
+    /* Write data to CONFIG_DATA port (0xCFC) with appropriate offset */
+    switch (Width) {
+        case 8:
+            ml_port_io_write8(0xCFC + (Register & 3), (UINT8)Value);
+            break;
+        case 16:
+            ml_port_io_write16(0xCFC + (Register & 2), (UINT16)Value);
+            break;
+        case 32:
+            ml_port_io_write32(0xCFC, (UINT32)Value);
+            break;
+    }
+    
+    return AE_OK;
 }
 
 #pragma mark OS time related functions
@@ -377,6 +487,11 @@ ACPI_STATUS AcpiOsCreateSemaphore(UInt32 InitialUnits, UInt32 MaxUnits, ACPI_SEM
     return AE_NO_MEMORY;
 }
 
+ACPI_STATUS AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
+{
+    return AcpiOsDestroySemaphore(Handle);
+}
+
 ACPI_STATUS AcpiOsDestroySemaphore(ACPI_SEMAPHORE Semaphore)
 {
     if (Semaphore == NULL) {
@@ -436,6 +551,12 @@ ACPI_STATUS AcpiOsExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Functio
     return AcpiOsExtExecute(Type, Function, Context);
 }
 
+void AcpiOsWaitEventsComplete(void)
+{
+    /* Wait for all queued asynchronous events to complete */
+    /* Implementation depends on how AcpiOsExecute queues work */
+    /* For now, this is a no-op since AcpiOsExecute delegates to external implementation */
+}
 
 #pragma mark Override functions - they do nothing.
 
@@ -448,6 +569,19 @@ ACPI_STATUS AcpiOsPredefinedOverride(const ACPI_PREDEFINED_NAMES *PredefinedObje
 ACPI_STATUS AcpiOsTableOverride(ACPI_TABLE_HEADER *ExistingTable, ACPI_TABLE_HEADER **NewTable)
 {
     *NewTable = NULL;
+    return AE_OK;
+}
+
+ACPI_STATUS AcpiOsPhysicalTableOverride(ACPI_TABLE_HEADER *ExistingTable,
+                                        ACPI_PHYSICAL_ADDRESS *NewAddress,
+                                        UINT32 *NewTableLength)
+{
+    if (!ExistingTable || !NewAddress || !NewTableLength) {
+        return AE_BAD_PARAMETER;
+    }
+    
+    *NewAddress = 0;
+    *NewTableLength = 0;
     return AE_OK;
 }
 
