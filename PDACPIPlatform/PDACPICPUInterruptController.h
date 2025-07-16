@@ -47,7 +47,8 @@ typedef void (*ipi_handler_t)(void);
 class PDACPICPUInterruptController : public IOCPUInterruptController {
     OSDeclareDefaultStructors(PDACPICPUInterruptController);
     
-    
+public:
+    virtual IOReturn handleInterrupt(void *refCon, IOService *nub, int source) APPLE_KEXT_OVERRIDE;
 };
 
 #endif /* _PDACPI_CPUIC_H */

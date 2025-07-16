@@ -39,6 +39,13 @@
 #include <IOKit/acpi/IOACPIPlatformExpert.h>
 #include <IOKit/rtc/IORTCController.h>
 
+extern "C" {
+#include "acpica/acpi.h" // For ACPICA APIs
+#include "acpica/acstruct.h"
+#include "acpica/aclocal.h"
+#include "acpica/acglobal.h"
+}
+
 class PDACPIPlatformExpert : public IOACPIPlatformExpert {
     OSDeclareDefaultStructors(PDACPIPlatformExpert);
     
@@ -102,7 +109,10 @@ private:
     bool fetchPCIData(void);
     void createCPUNubs(void); /* walk MADT and enumerate the CPU devices/objects available. */
     void systemStateChange(void);
-    
+
+    static ACPI_STATUS processorNamespaceWalk(ACPI_HANDLE Handle, UInt32 NestingLevel, void *Context, void **ReturnValue);
+    static ACPI_STATUS deviceNamespaceWalk(ACPI_HANDLE Handle, UInt32 NestingLevel, void *Context, void **ReturnValue);
+
 private:
     OSDictionary *m_tableDict;
     

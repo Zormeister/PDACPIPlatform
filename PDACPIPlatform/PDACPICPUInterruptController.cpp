@@ -36,5 +36,3 @@
 #include "PDACPICPUInterruptController.h"
 
 OSDefineMetaClassAndStructors(PDACPICPUInterruptController, IOCPUInterruptController);
-
-

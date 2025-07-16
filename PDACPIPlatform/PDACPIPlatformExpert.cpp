@@ -42,15 +42,64 @@
 extern IOReturn IOPCIPlatformInitialize(void);
 #endif
 
-extern "C" {
-#include "acpica/acpi.h" // For ACPICA APIs
-#include "acpica/acstruct.h"
-#include "acpica/aclocal.h"
-#include "acpica/acglobal.h"
+/* The following globals are for interactions with the AppleAPIC driver, which has source code! */
+/* see https://github.com/apple-oss-distributions/AppleAPIC */
+const OSSymbol *gIOAPICDestinationIDKey;
+const OSSymbol *gIOAPICPhysicalAddressKey;
+const OSSymbol *gIOAPICBaseVectorNumberKey;
+const OSSymbol *gIOAPICIDKey;
+const OSSymbol *gIOAPICHandleSleepWakeFunction;
+const OSSymbol *gIOAPICSetVectorPhysicalDestination;
+
+#pragma mark - PDACPIPlatformExpertGlobals
+
+class PDACPIPlatformExpertGlobals {
+public:
+    PDACPIPlatformExpertGlobals();
+    ~PDACPIPlatformExpertGlobals();
+};
+
+static PDACPIPlatformExpertGlobals PDACPIPlatformExpertGlobals;
+
+PDACPIPlatformExpertGlobals::PDACPIPlatformExpertGlobals()
+{
+    /* Setup APIC keys */
+    gIOAPICBaseVectorNumberKey = OSSymbol::withCString("Base Vector Number");
+    gIOAPICDestinationIDKey = OSSymbol::withCString("Destination APIC ID");
+    gIOAPICIDKey = OSSymbol::withCString("APIC ID");
+    gIOAPICPhysicalAddressKey = OSSymbol::withCString("Physical Address");
+
+    /* AppleAPICInterruptController::callPlatformFunction interfaces */
+    gIOAPICHandleSleepWakeFunction = OSSymbol::withCString("HandleSleepWake");
+    gIOAPICSetVectorPhysicalDestination = OSSymbol::withCString("SetVectorPhysicalDestination");
 }
 
+PDACPIPlatformExpertGlobals::~PDACPIPlatformExpertGlobals()
+{
+    if (gIOAPICBaseVectorNumberKey) {
+        OSSafeReleaseNULL(gIOAPICBaseVectorNumberKey);
+    }
+    if (gIOAPICDestinationIDKey) {
+        OSSafeReleaseNULL(gIOAPICDestinationIDKey);
+    }
+    if (gIOAPICIDKey) {
+        OSSafeReleaseNULL(gIOAPICIDKey);
+    }
+    if (gIOAPICPhysicalAddressKey) {
+        OSSafeReleaseNULL(gIOAPICPhysicalAddressKey);
+    }
+    if (gIOAPICHandleSleepWakeFunction) {
+        OSSafeReleaseNULL(gIOAPICHandleSleepWakeFunction);
+    }
+    if (gIOAPICSetVectorPhysicalDestination) {
+        OSSafeReleaseNULL(gIOAPICSetVectorPhysicalDestination);
+    }
+}
+
+#pragma mark - PDACPIPlatformExpert
+
 #define super IOACPIPlatformExpert
-OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert)
+OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert);
 
 ACPI_TABLE_MADT *gAPICTable;
 
@@ -106,6 +155,8 @@ bool PDACPIPlatformExpert::initializeACPICA()
         AcpiTerminate(); // Cleanup
         return false;
     }
+    
+    /* First, enumerate the Processor namespace to get the number of available CPUs in ACPI. */
 }
 
 /* this is so IOPCIFamily gets our ACPI tables. */
@@ -151,12 +202,12 @@ bool PDACPIPlatformExpert::catalogACPITables()
     UInt32 tables = AcpiGbl_RootTableList.CurrentTableCount;
     this->m_tableDict = OSDictionary::withCapacity(tables + 1);
 
-    AcpiTableMap *tmp = IOMalloc(sizeof(AcpiTableMap) * tables);
+    AcpiTableMap *tmp = (AcpiTableMap *)IOMalloc(sizeof(AcpiTableMap) * tables);
 
     /* ZORMEISTER: God this is such a hack... */
     for (UInt32 i = 0; i < tables; i++) {
         AcpiGetTableByIndex(i, &Table);
-        for (UInt32 j = i; 0 > j; t--) { /* ZORMEISTER: walk backwards from our current position. */
+        for (UInt32 j = i; 0 > j; j--) { /* ZORMEISTER: walk backwards from our current position. */
             if (strncmp(tmp[j].Signature, Table->Signature, 4) == 0) {
                 if (tmp[j].instance == 0) {
                     tmp[j].instance++;
@@ -205,7 +256,6 @@ const OSData *PDACPIPlatformExpert::getACPITableData(const char *name, UInt32 Ta
     
     return nullptr;
 }
-
 
 bool PDACPIPlatformExpert::start(IOService *provider)
 {
