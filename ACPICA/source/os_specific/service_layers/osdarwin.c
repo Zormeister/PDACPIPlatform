@@ -35,8 +35,8 @@
 */
 
 /* standard includes... */
-#include "acpica/acpi.h"
-#include "acpica/actables.h"  /* For MCFG table definitions */
+#include "acpi.h"
+#include "actables.h"  /* For MCFG table definitions */
 
 #include <mach/semaphore.h>
 #include <machine/machine_routines.h>
@@ -704,7 +704,7 @@ void AcpiOsStall(UINT32 us)
 }
 
 /* ZORMEISTER: I think? - 'The current value of the system timer in 100-nanosecond units. '*/
-UInt64 AcpiOsGetTimer(void)
+UINT64 AcpiOsGetTimer(void)
 {
     UInt64 abs = mach_absolute_time();
     UInt64 ns = 0;
@@ -762,12 +762,7 @@ ACPI_STATUS AcpiOsCreateSemaphore(UInt32 InitialUnits, UInt32 MaxUnits, ACPI_SEM
     return AE_NO_MEMORY;
 }
 
-ACPI_STATUS AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Handle)
-{
-    return AcpiOsDestroySemaphore(Handle);
-}
-
-ACPI_STATUS AcpiOsDestroySemaphore(ACPI_SEMAPHORE Semaphore)
+ACPI_STATUS AcpiOsDeleteSemaphore(ACPI_SEMAPHORE Semaphore)
 {
     if (Semaphore == NULL) {
         return AE_BAD_PARAMETER;

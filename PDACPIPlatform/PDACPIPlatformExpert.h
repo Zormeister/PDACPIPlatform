@@ -40,10 +40,7 @@
 #include <IOKit/rtc/IORTCController.h>
 
 extern "C" {
-#include "acpica/acpi.h" // For ACPICA APIs
-#include "acpica/acstruct.h"
-#include "acpica/aclocal.h"
-#include "acpica/acglobal.h"
+#include "acpi.h" // For ACPICA APIs
 }
 
 class PDACPIPlatformExpert : public IOACPIPlatformExpert {

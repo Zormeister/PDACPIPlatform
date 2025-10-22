@@ -848,7 +848,7 @@ AcpiUtSnprintf (
 
 
     va_start (Args, Format);
-    Length = vsnprintf (String, Size, Format, Args);
+    Length = AcpiUtVsnprintf (String, Size, Format, Args);
     va_end (Args);
 
     return (Length);
@@ -879,7 +879,7 @@ AcpiUtSprintf (
 
 
     va_start (Args, Format);
-    Length = vsnprintf (String, ACPI_UINT32_MAX, Format, Args);
+    Length = AcpiUtVsnprintf (String, ACPI_UINT32_MAX, Format, Args);
     va_end (Args);
 
     return (Length);

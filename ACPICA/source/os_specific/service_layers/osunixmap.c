@@ -149,7 +149,7 @@
  *
  *****************************************************************************/
 
-#include "../../../../include/acpica/acpidump.h"
+#include "acpidump.h"
 #include <unistd.h>
 #include <sys/mman.h>
 #ifdef _FreeBSD

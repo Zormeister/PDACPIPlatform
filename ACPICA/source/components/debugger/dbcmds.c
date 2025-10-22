@@ -156,7 +156,7 @@
 #include "acnamesp.h"
 #include "acresrc.h"
 #include "actables.h"
-//#include "limits.h"
+#include "limits.h"
 
 #define _COMPONENT          ACPI_CA_DEBUGGER
         ACPI_MODULE_NAME    ("dbcmds")
