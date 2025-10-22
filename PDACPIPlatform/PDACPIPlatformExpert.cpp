@@ -142,7 +142,8 @@ bool PDACPIPlatformExpert::initializeACPICA()
     this->catalogACPITables();
     this->fetchPCIData();
 
-    status = AcpiEnableSubsystem(ACPI_FULL_INITIALIZATION);
+    /* We can't enable the Events subsystem or IRQ subsystem yet; we need IOCPU subclasses */
+    status = AcpiEnableSubsystem(ACPI_NO_EVENT_INIT | ACPI_NO_HANDLER_INIT);
     if (ACPI_FAILURE(status)) {
         IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiEnableSubsystem failed with status %s\n", AcpiFormatException(status));
         AcpiTerminate(); // Cleanup

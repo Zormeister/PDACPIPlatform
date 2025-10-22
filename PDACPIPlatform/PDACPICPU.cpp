@@ -56,6 +56,36 @@ PDACPICPUInterruptController *gCPUInterruptController;
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
 
+/*
+ *     | +-o P000@0  <class IOACPIPlatformDevice, id 0x100000136, registered, matched, active, busy 0 (748 ms), retain 8>
+ *     | | | {
+ *     | | |   "processor-number" = 0
+ *     | | |   "IOGeneralInterest" = "IOCommand is not serializable"
+ *     | | |   "cpu-type" = <0106>
+ *     | | |   "device_type" = <"processor">
+ *     | | |   "timebase-frequency" = <00ca9a3b>
+ *     | | |   "clock-frequency" = <00371789>
+ *     | | |   "plugin-type" = 1
+ *     | | |   "processor-lapic" = 0                                  <--- LAPIC ID, not set if the CPU in the MADT is disabled.
+ *     | | |   "processor-index" = 0
+ *     | | |   "bus-frequency" = <00a8cb18>
+ *     | | |   "name" = <"P000">
+ *     | | |   "processor-id" = 1                                     <--- This is equal to the MADT's ProcessorId field
+ *     | | | }
+ *
+ *     | +-o io-apic@fec00000  <class IOACPIPlatformDevice, id 0x100000146, registered, matched, active, busy 0 (11 ms), retain 7>
+ *     | | | {
+ *     | | |   "Physical Address" = 18446744073688580096                     <--- Phys Addr as reported in MADT
+ *     | | |   "Vector Limit" = 112                                          <--- BVN - VL = 48, thoughts?
+ *     | | |   "InterruptControllerName" = "io-apic-0"
+ *     | | |   "Destination APIC ID" = 0
+ *     | | |   "Base Vector Number" = 64                                     <--- IRQ vector 'base'? Value is 64 at IOAPIC 0 then
+ *     | | |   "IOInterruptControllers" = ("IOPlatformInterruptController")
+ *     | | |   "IOInterruptSpecifiers" = (<00000000>)
+ *     | | |   "APIC ID" = 3                                                 <--- As reported in the MADT.
+ *     | | | }
+ */
+
 bool PDACPICPU::start(IOService *provider)
 {
     IOLog("PDACPICPU::start\n");
