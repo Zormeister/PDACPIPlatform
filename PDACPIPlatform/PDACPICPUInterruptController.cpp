@@ -33,6 +33,37 @@
 *
 */
 
+#include <IOKit/IOLib.h>
+#include "PDACPICPU.h"
 #include "PDACPICPUInterruptController.h"
 
+#define super IOCPUInterruptController
+
 OSDefineMetaClassAndStructors(PDACPICPUInterruptController, IOCPUInterruptController);
+
+IOReturn PDACPICPUInterruptController::initCPUInterruptController(int sources)
+{
+    /* pexpert lets IOKit handle the perfmon LAPIC vector so we'll handle it here. */
+    this->m_perfmonVectors = (IOInterruptVector *)IOMalloc(sources * sizeof(IOInterruptVector));
+    
+    return super::initCPUInterruptController(sources);
+}
+
+IOReturn PDACPICPUInterruptController::handleInterrupt(void *refCon, IOService *nub, int source)
+{
+    if (source == 0xdf) {
+        
+    }
+    
+    return kIOReturnSuccess;
+}
+
+IOReturn PDACPICPUInterruptController::getInterruptType(IOService *nub, int source, int *type)
+{
+    if (type == nullptr) {
+        return kIOReturnBadArgument;
+    } else {
+        *type = kIOInterruptTypeEdge;
+        return kIOReturnSuccess;
+    }
+}

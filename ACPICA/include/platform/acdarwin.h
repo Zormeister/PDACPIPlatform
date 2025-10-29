@@ -41,6 +41,7 @@
 
 #include <stdint.h>
 #include <mach/semaphore.h>
+#include <machine/machine_routines.h>
 #include <IOKit/IOLib.h>
 
 #define ACPI_USE_LOCAL_CACHE
@@ -96,11 +97,66 @@ extern const unsigned char AcpiGbl_Ctypes[];
 #define isprint(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP | _ACPI_DI | _ACPI_XS | _ACPI_PU))
 #define isalpha(c)  (AcpiGbl_Ctypes[(unsigned char)(c)] & (_ACPI_LO | _ACPI_UP))
 
+/*
+ * XNU doesn't export some Libc functions that ACPI CA wants, so we provide it instead.
+ *
+ * if anyone links to PDACPIPlatform for them, let them know it's PPI and not for general use.
+ */
+
+int tolower(int c);
+int toupper(int c);
+const char *strstr(const char *s1, const char *s2);
+
 // HACK: kernel string.h is borked on at *least* 10.15.
 #if defined(strcpy) && __has_builtin(__builtin___strcpy_chk)
 #undef strcpy
 
-#define strcpy(dest, src) __builtin___strcpy_chk(dest, src, XNU_BOS(dest, 1))
+#define strcpy(dest, src) __builtin___strcpy_chk(dest, src, __builtin_object_size(dest, 1))
+#endif
+
+/* This is to compensate for the fact that the public SDK headers are stripped of these functions */
+extern unsigned int ml_phys_read_byte(vm_offset_t paddr);
+extern unsigned int ml_phys_read_byte_64(addr64_t paddr);
+extern unsigned int ml_phys_read_half(vm_offset_t paddr);
+extern unsigned int ml_phys_read_half_64(addr64_t paddr);
+extern unsigned int ml_phys_read_word(vm_offset_t paddr);
+extern unsigned int ml_phys_read_word_64(addr64_t paddr);
+extern unsigned long long ml_phys_read_double(vm_offset_t paddr);
+extern unsigned long long ml_phys_read_double_64(addr64_t paddr);
+extern void ml_phys_write_byte(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_byte_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_half(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_half_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_word(vm_offset_t paddr, unsigned int data);
+extern void ml_phys_write_word_64(addr64_t paddr, unsigned int data);
+extern void ml_phys_write_double(vm_offset_t paddr, unsigned long long data);
+extern void ml_phys_write_double_64(addr64_t paddr, unsigned long long data);
+extern void ml_port_io_write8(uint16_t ioport, uint8_t val);
+extern void ml_port_io_write16(uint16_t ioport, uint16_t val);
+extern void ml_port_io_write32(uint16_t ioport, uint32_t val);
+extern uint8_t ml_port_io_read8(uint16_t ioport);
+extern uint16_t ml_port_io_read16(uint16_t ioport);
+extern uint32_t ml_port_io_read32(uint16_t ioport);
+
+/* Will PDACPIPlatform even run in a 32-bit kernel? */
+#if __LP64__
+#define PHYS_READ_8(p) ml_phys_read_byte_64(p)
+#define PHYS_READ_16(p) ml_phys_read_half_64(p)
+#define PHYS_READ_32(p) ml_phys_read_word_64(p)
+#define PHYS_READ_64(p) ml_phys_read_double_64(p)
+#define PHYS_WRITE_8(p, v) ml_phys_write_byte_64(p, (v & 0x000000FF))
+#define PHYS_WRITE_16(p, v) ml_phys_write_half_64(p, (v & 0x0000FFFF))
+#define PHYS_WRITE_32(p, v) ml_phys_write_word_64(p, (v))
+#define PHYS_WRITE_64(p, v) ml_phys_write_double_64(p, v)
+#else
+#define PHYS_READ_8(p) ml_phys_read_byte(p)
+#define PHYS_READ_16(p) ml_phys_read_half(p)
+#define PHYS_READ_32(p) ml_phys_read_word(p)
+#define PHYS_READ_64(p) ml_phys_read_double(p)
+#define PHYS_WRITE_8(p, v) ml_phys_write_byte(p, (v & 0x000000FF))
+#define PHYS_WRITE_16(p, v) ml_phys_write_half(p, (v & 0x0000FFFF))
+#define PHYS_WRITE_32(p, v) ml_phys_write_word(p, (v))
+#define PHYS_WRITE_64(p, v) ml_phys_write_double(p, v)
 #endif
 
 #endif

@@ -1,42 +1,39 @@
 /*
-*
-* Copyright (c) 2007-Present The PureDarwin Project.
-* All rights reserved.
-*
-* @PUREDARWIN_LICENSE_HEADER_START@
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the distribution.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-* IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-* THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-* PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-* CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-* EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-* PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-* PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-* @PUREDARWIN_LICENSE_HEADER_END@
-*
-* PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
-* Created by github.com/csekel (InSaneDarwin)
-*
-* This specific file was created by Zormeister w/ csekel (InSaneDarwin) adjustments
-*/
+ * Copyright (c) 2007-Present The PureDarwin Project.
+ * All rights reserved.
+ *
+ * @PUREDARWIN_LICENSE_HEADER_START@
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @PUREDARWIN_LICENSE_HEADER_END@
+ *
+ * PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
+ * Created by github.com/csekel (InSaneDarwin)
+ */
 
 /* standard includes... */
 #include "acpi.h"
-#include "actables.h"  /* For MCFG table definitions */
+#include "actbl.h"  /* For MCFG table definitions */
 
 #include <mach/semaphore.h>
 #include <machine/machine_routines.h>
@@ -44,7 +41,6 @@
 #include <IOKit/IOLib.h>
 #include <mach/thread_status.h>
 
-/* ACPI OS Layer implementations because yes */
 #define _COMPONENT ACPI_OS_SERVICES
 ACPI_MODULE_NAME("osdarwin");
 
@@ -88,6 +84,7 @@ struct _acpi_cache {
 #define ACPI_OS_PRINTF_USE_KPRINTF 0x1
 #define ACPI_OS_PRINTF_USE_IOLOG   0x2
 
+/* Local static variables go here */
 #if DEBUG
 UInt32 gAcpiOsPrintfFlags = ACPI_OS_PRINTF_USE_KPRINTF | ACPI_OS_PRINTF_USE_IOLOG;
 #else
@@ -101,6 +98,11 @@ extern void AcpiOsExtUnmapMemory(void *);
 extern ACPI_STATUS AcpiOsExtInitialize(void);
 extern ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 extern ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
+extern ACPI_STATUS AcpiOsReadPCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 *Value, UInt32 Width);
+extern ACPI_STATUS AcpiOsWritePCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 Value, UInt32 Width);
+
+/* XNU Private KPI declarations */
+
 
 ACPI_STATUS AcpiOsInitialize(void)
 {
@@ -183,11 +185,6 @@ AcpiOsGetCacheStatistics(ACPI_CACHE_T *Cache, UINT32 *Requests, UINT32 *Hits)
 ACPI_STATUS AcpiOsTerminate(void)
 {
     /* Cleanup any OS-specific resources if needed */
-    gPciEcamInitialized = FALSE;
-    gPciEcamBase = 0;
-    gPciEcamSize = 0;
-    gPciStartBus = 0;
-    gPciEndBus = 0;
     
     /* Note: ACPICA should clean up its own caches via AcpiOsDeleteCache() */
     /* but we could add cache leak detection here in debug builds */
@@ -254,31 +251,9 @@ AcpiOsFree(void *p)
     }
 }
 
-/* ZORMEISTER: me is kernel. i can write and read as i want. */
+/* me is kernel. i can write and read as i want. */
 BOOLEAN AcpiOsReadable(void *Memory, ACPI_SIZE Length) { return true; }
 BOOLEAN AcpiOsWriteable(void *Memory, ACPI_SIZE Length) { return true; }
-
-/* ZORMEISTER: import KPIs because otherwise this won't work. */
-extern unsigned int ml_phys_read_byte(vm_offset_t paddr);
-extern unsigned int ml_phys_read_byte_64(addr64_t paddr);
-extern unsigned int ml_phys_read_half(vm_offset_t paddr);
-extern unsigned int ml_phys_read_half_64(addr64_t paddr);
-extern unsigned int ml_phys_read_word(vm_offset_t paddr);
-extern unsigned int ml_phys_read_word_64(addr64_t paddr);
-extern unsigned long long ml_phys_read_double(vm_offset_t paddr);
-extern unsigned long long ml_phys_read_double_64(addr64_t paddr);
-
-/*
- * ZORMEISTER:
- * mind you this is my local machine using the following:
- *
- * SDK: MacOSX15.4.sdk
- * Xcode Version: 16.3 build 16E140
- * Apple Clang version: clang-1700.0.13.3
- *
- * i need to establish a build server for my projects
- *
- */
 
 ACPI_STATUS
 AcpiOsReadMemory(
@@ -288,41 +263,22 @@ AcpiOsReadMemory(
 {
     switch (Width) {
         case 8:
-#if __LP64__
-            *Value = ml_phys_read_byte_64(Address);
-#else
-            *Value = ml_phys_read_byte(Address);
-#endif
+            *Value = PHYS_READ_8(Address);
             return AE_OK;
         case 16:
-#if __LP64__
-            *Value = ml_phys_read_half_64(Address);
-#else
-            *Value = ml_phys_read_half(Address);
-#endif
+            *Value = PHYS_READ_16(Address);
             return AE_OK;
         case 32:
-#if __LP64__
-            *Value = ml_phys_read_word_64(Address);
-#else
-            *Value = ml_phys_read_word(Address);
-#endif
+            *Value = PHYS_READ_32(Address);
             return AE_OK;
         case 64:
-#if __LP64__
-            *Value = ml_phys_read_double_64(Address);
-#else
-            *Value = ml_phys_read_double(Address);
-#endif
+            *Value = PHYS_READ_64(Address);
+            return AE_OK;
         default:
             AcpiOsPrintf("ACPI: bad width value\n");
             return AE_ERROR;
     }
 }
-
-extern uint8_t ml_port_io_read8(uint16_t ioport);
-extern uint16_t ml_port_io_read16(uint16_t ioport);
-extern uint32_t ml_port_io_read32(uint16_t ioport);
 
 ACPI_STATUS
 AcpiOsReadPort(ACPI_IO_ADDRESS Address,
@@ -344,16 +300,6 @@ AcpiOsReadPort(ACPI_IO_ADDRESS Address,
     }
 }
 
-
-extern void ml_phys_write_byte(vm_offset_t paddr, unsigned int data);
-extern void ml_phys_write_byte_64(addr64_t paddr, unsigned int data);
-extern void ml_phys_write_half(vm_offset_t paddr, unsigned int data);
-extern void ml_phys_write_half_64(addr64_t paddr, unsigned int data);
-extern void ml_phys_write_word(vm_offset_t paddr, unsigned int data);
-extern void ml_phys_write_word_64(addr64_t paddr, unsigned int data);
-extern void ml_phys_write_double(vm_offset_t paddr, unsigned long long data);
-extern void ml_phys_write_double_64(addr64_t paddr, unsigned long long data);
-
 ACPI_STATUS
 AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
                   UINT64 Value,
@@ -361,41 +307,22 @@ AcpiOsWriteMemory(ACPI_PHYSICAL_ADDRESS Address,
 {
     switch (Width) {
         case 8:
-#if __LP64__
-            ml_phys_write_byte_64(Address, (UINT32)Value);
-#else
-            ml_phys_write_byte(Address, (UINT32)Value);
-#endif
+            PHYS_WRITE_8(Address, Value);
             return AE_OK;
         case 16:
-#if __LP64__
-            ml_phys_write_half_64(Address, (UINT32)Value);
-#else
-            ml_phys_write_half(Address, (UINT32)Value);
-#endif
+            PHYS_WRITE_16(Address, Value);
             return AE_OK;
         case 32:
-#if __LP64__
-            ml_phys_write_word_64(Address, (UINT32)Value);
-#else
-            ml_phys_write_word(Address, (UINT32)Value);
-#endif
+            PHYS_WRITE_32(Address, Value);
             return AE_OK;
         case 64:
-#if __LP64__
-            ml_phys_write_double_64(Address, Value);
-#else
-            ml_phys_write_double(Address, Value);
-#endif
+            PHYS_WRITE_64(Address, Value);
+            return AE_OK;
         default:
             AcpiOsPrintf("ACPI: bad width value\n");
             return AE_ERROR;
     }
 }
-
-extern void ml_port_io_write8(uint16_t ioport, uint8_t val);
-extern void ml_port_io_write16(uint16_t ioport, uint16_t val);
-extern void ml_port_io_write32(uint16_t ioport, uint32_t val);
 
 ACPI_STATUS
 AcpiOsWritePort(ACPI_IO_ADDRESS Address,
@@ -417,223 +344,6 @@ AcpiOsWritePort(ACPI_IO_ADDRESS Address,
     }
 }
 
-/* PCI Configuration Space Access - MMIO and Port I/O Implementation */
-
-/* Global variables for ECAM/MMIO support */
-static ACPI_PHYSICAL_ADDRESS gPciEcamBase = 0;
-static UINT32 gPciEcamSize = 0;
-static UINT16 gPciStartBus = 0;
-static UINT16 gPciEndBus = 0;
-static boolean_t gPciEcamInitialized = FALSE;
-
-/* Initialize ECAM (Enhanced Configuration Access Mechanism) support */
-static ACPI_STATUS
-AcpiOsInitializePciEcam(void)
-{
-    ACPI_TABLE_MCFG *mcfg_table = NULL;
-    ACPI_STATUS status;
-    
-    if (gPciEcamInitialized) {
-        return AE_OK;
-    }
-    
-    /* Try to get MCFG table for ECAM base address */
-    status = AcpiGetTable(ACPI_SIG_MCFG, 0, (ACPI_TABLE_HEADER **)&mcfg_table);
-    if (ACPI_SUCCESS(status) && mcfg_table) {
-        ACPI_MCFG_ALLOCATION *allocation;
-        
-        /* Get first allocation entry */
-        allocation = (ACPI_MCFG_ALLOCATION *)((UINT8 *)mcfg_table + sizeof(ACPI_TABLE_MCFG));
-        
-        if ((UINT8 *)allocation < (UINT8 *)mcfg_table + mcfg_table->Header.Length) {
-            gPciEcamBase = allocation->Address;
-            gPciStartBus = allocation->PciSegment;  /* Actually start bus */
-            gPciEndBus = allocation->EndBusNumber;
-            gPciEcamSize = (gPciEndBus - gPciStartBus + 1) * 256 * 4096; /* Each bus has 256 devices, 4KB each */
-            
-#if DEBUG
-            AcpiOsPrintf("ACPI: ECAM base 0x%llX, buses %d-%d, size 0x%X\n", 
-                        gPciEcamBase, gPciStartBus, gPciEndBus, gPciEcamSize);
-#endif
-        }
-    }
-    
-    gPciEcamInitialized = TRUE;
-    return AE_OK;
-}
-
-/* MMIO-based PCI configuration space access */
-static ACPI_STATUS
-AcpiOsReadPciConfigMmio(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 *Value, UINT32 Width)
-{
-    ACPI_PHYSICAL_ADDRESS config_addr;
-    void *mapped_addr;
-    UINT64 data = 0;
-    
-    /* Calculate ECAM address: Base + (Bus << 20) + (Device << 15) + (Function << 12) + Register */
-    config_addr = gPciEcamBase + 
-                  ((UINT64)PciId->Bus << 20) + 
-                  ((UINT64)PciId->Device << 15) + 
-                  ((UINT64)PciId->Function << 12) + 
-                  Register;
-    
-    /* Map the configuration space */
-    mapped_addr = AcpiOsMapMemory(config_addr, Width / 8);
-    if (!mapped_addr) {
-        return AE_NO_MEMORY;
-    }
-    
-    /* Read the value */
-    switch (Width) {
-        case 8:
-            data = *(UINT8 *)mapped_addr;
-            break;
-        case 16:
-            data = *(UINT16 *)mapped_addr;
-            break;
-        case 32:
-            data = *(UINT32 *)mapped_addr;
-            break;
-        default:
-            AcpiOsUnmapMemory(mapped_addr, Width / 8);
-            return AE_BAD_PARAMETER;
-    }
-    
-    *Value = data;
-    AcpiOsUnmapMemory(mapped_addr, Width / 8);
-    
-#if DEBUG
-    AcpiOsPrintf("PCI MMIO read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
-                 PciId->Bus, PciId->Device, PciId->Function, 
-                 Register, Width, (UINT32)*Value);
-#endif
-    
-    return AE_OK;
-}
-
-static ACPI_STATUS
-AcpiOsWritePciConfigMmio(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 Value, UINT32 Width)
-{
-    ACPI_PHYSICAL_ADDRESS config_addr;
-    void *mapped_addr;
-    
-#if DEBUG
-    AcpiOsPrintf("PCI MMIO write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
-                 PciId->Bus, PciId->Device, PciId->Function, 
-                 Register, Width, (UINT32)Value);
-#endif
-    
-    /* Calculate ECAM address */
-    config_addr = gPciEcamBase + 
-                  ((UINT64)PciId->Bus << 20) + 
-                  ((UINT64)PciId->Device << 15) + 
-                  ((UINT64)PciId->Function << 12) + 
-                  Register;
-    
-    /* Map the configuration space */
-    mapped_addr = AcpiOsMapMemory(config_addr, Width / 8);
-    if (!mapped_addr) {
-        return AE_NO_MEMORY;
-    }
-    
-    /* Write the value */
-    switch (Width) {
-        case 8:
-            *(UINT8 *)mapped_addr = (UINT8)Value;
-            break;
-        case 16:
-            *(UINT16 *)mapped_addr = (UINT16)Value;
-            break;
-        case 32:
-            *(UINT32 *)mapped_addr = (UINT32)Value;
-            break;
-        default:
-            AcpiOsUnmapMemory(mapped_addr, Width / 8);
-            return AE_BAD_PARAMETER;
-    }
-    
-    AcpiOsUnmapMemory(mapped_addr, Width / 8);
-    return AE_OK;
-}
-
-/* Legacy Port I/O based PCI configuration space access */
-static ACPI_STATUS
-AcpiOsReadPciConfigPortIo(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 *Value, UINT32 Width)
-{
-    UINT32 pci_address;
-    UINT32 data = 0;
-    
-    /* Construct PCI configuration address for legacy method */
-    pci_address = (1U << 31) |                  /* Enable bit */
-                  (PciId->Bus << 16) |          /* Bus number */
-                  (PciId->Device << 11) |       /* Device number */
-                  (PciId->Function << 8) |      /* Function number */
-                  (Register & 0xFC);            /* Register (aligned to 32-bit) */
-    
-    /* Write address to CONFIG_ADDRESS port (0xCF8) */
-    ml_port_io_write32(0xCF8, pci_address);
-    
-    /* Read data from CONFIG_DATA port (0xCFC) with appropriate offset */
-    switch (Width) {
-        case 8:
-            data = ml_port_io_read8(0xCFC + (Register & 3));
-            break;
-        case 16:
-            data = ml_port_io_read16(0xCFC + (Register & 2));
-            break;
-        case 32:
-            data = ml_port_io_read32(0xCFC);
-            break;
-    }
-    
-    *Value = data;
-    
-#if DEBUG
-    AcpiOsPrintf("PCI Port I/O read: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
-                 PciId->Bus, PciId->Device, PciId->Function, 
-                 Register, Width, (UINT32)*Value);
-#endif
-    
-    return AE_OK;
-}
-
-static ACPI_STATUS
-AcpiOsWritePciConfigPortIo(ACPI_PCI_ID *PciId, UINT32 Register, UINT64 Value, UINT32 Width)
-{
-    UINT32 pci_address;
-    
-#if DEBUG
-    AcpiOsPrintf("PCI Port I/O write: %02X:%02X:%02X reg 0x%02X width %d = 0x%X\n",
-                 PciId->Bus, PciId->Device, PciId->Function, 
-                 Register, Width, (UINT32)Value);
-#endif
-    
-    /* Construct PCI configuration address */
-    pci_address = (1U << 31) |                  /* Enable bit */
-                  (PciId->Bus << 16) |          /* Bus number */
-                  (PciId->Device << 11) |       /* Device number */
-                  (PciId->Function << 8) |      /* Function number */
-                  (Register & 0xFC);            /* Register (aligned to 32-bit) */
-    
-    /* Write address to CONFIG_ADDRESS port (0xCF8) */
-    ml_port_io_write32(0xCF8, pci_address);
-    
-    /* Write data to CONFIG_DATA port (0xCFC) with appropriate offset */
-    switch (Width) {
-        case 8:
-            ml_port_io_write8(0xCFC + (Register & 3), (UINT8)Value);
-            break;
-        case 16:
-            ml_port_io_write16(0xCFC + (Register & 2), (UINT16)Value);
-            break;
-        case 32:
-            ml_port_io_write32(0xCFC, (UINT32)Value);
-            break;
-    }
-    
-    return AE_OK;
-}
-
 /* Main PCI Configuration Space Access Functions */
 ACPI_STATUS
 AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
@@ -645,22 +355,7 @@ AcpiOsReadPciConfiguration(ACPI_PCI_ID *PciId,
         return AE_BAD_PARAMETER;
     }
     
-    if (Width != 8 && Width != 16 && Width != 32) {
-        return AE_BAD_PARAMETER;
-    }
-    
-    /* Initialize ECAM support if not done already */
-    AcpiOsInitializePciEcam();
-    
-    /* Try MMIO/ECAM first if available and bus is in range */
-    if (gPciEcamBase != 0 && 
-        PciId->Bus >= gPciStartBus && 
-        PciId->Bus <= gPciEndBus) {
-        return AcpiOsReadPciConfigMmio(PciId, Register, Value, Width);
-    }
-    
-    /* Fall back to legacy Port I/O method */
-    return AcpiOsReadPciConfigPortIo(PciId, Register, Value, Width);
+    return AcpiOsReadPCIConfigSpace(PciId, Register, Value, Width);
 }
 
 ACPI_STATUS
@@ -673,22 +368,7 @@ AcpiOsWritePciConfiguration(ACPI_PCI_ID *PciId,
         return AE_BAD_PARAMETER;
     }
     
-    if (Width != 8 && Width != 16 && Width != 32) {
-        return AE_BAD_PARAMETER;
-    }
-    
-    /* Initialize ECAM support if not done already */
-    AcpiOsInitializePciEcam();
-    
-    /* Try MMIO/ECAM first if available and bus is in range */
-    if (gPciEcamBase != 0 && 
-        PciId->Bus >= gPciStartBus && 
-        PciId->Bus <= gPciEndBus) {
-        return AcpiOsWritePciConfigMmio(PciId, Register, Value, Width);
-    }
-    
-    /* Fall back to legacy Port I/O method */
-    return AcpiOsWritePciConfigPortIo(PciId, Register, Value, Width);
+    return AcpiOsWritePciConfiguration(PciId, Register, Value, Width);
 }
 
 #pragma mark OS time related functions
@@ -706,8 +386,14 @@ void AcpiOsStall(UINT32 us)
 /* ZORMEISTER: I think? - 'The current value of the system timer in 100-nanosecond units. '*/
 UINT64 AcpiOsGetTimer(void)
 {
-    UInt64 abs = mach_absolute_time();
+    UInt64 abs = 0;
     UInt64 ns = 0;
+
+    /*
+     * use the clock uptime over mach absolute time
+     */
+
+    clock_get_uptime(&abs);
     absolutetime_to_nanoseconds(abs, &ns);
     return (ns / 100);
 }
@@ -1132,4 +818,9 @@ void AcpiOsVprintf(const char *fmt, va_list list)
             IOLog("%s", msg);
         }
     }
+}
+
+void AcpiOsRedirectOutput(void *Destination)
+{
+    
 }

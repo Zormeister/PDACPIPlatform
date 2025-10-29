@@ -1,42 +1,42 @@
 /*
-*
-* Copyright (c) 2007-Present The PureDarwin Project.
-* All rights reserved.
-*
-* @PUREDARWIN_LICENSE_HEADER_START@
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions
-* are met:
-* 1. Redistributions of source code must retain the above copyright
-*    notice, this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright
-*    notice, this list of conditions and the following disclaimer in the
-*    documentation and/or other materials provided with the distribution.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
-* IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-* THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
-* PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
-* CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-* EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
-* PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
-* PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
-* LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-* SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-* @PUREDARWIN_LICENSE_HEADER_END@
-*
-* PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
-* Created by github.com/csekel (InSaneDarwin)
-*
-* This specific file was created by Zormeister
-*/
+ * Copyright (c) 2007-Present The PureDarwin Project.
+ * All rights reserved.
+ *
+ * @PUREDARWIN_LICENSE_HEADER_START@
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+ * IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+ * THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ * NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * @PUREDARWIN_LICENSE_HEADER_END@
+ *
+ * PDACPIPlatform Open Source Version of Apple's AppleACPIPlatform
+ * Created by github.com/csekel (InSaneDarwin)
+ */
 
 /* These are our functions so we can hook into IOKit properly. */
 
-#include "acpica/acpi.h"
+extern "C" {
+#include "acpi.h"
+};
+
 #include <IOKit/IOMemoryDescriptor.h>
 #include <IOKit/IORegistryEntry.h>
 #include <IOKit/IODeviceTreeSupport.h>
@@ -56,19 +56,16 @@ extern "C" ACPI_STATUS AcpiOsExtInitialize(void);
 extern "C" ACPI_PHYSICAL_ADDRESS AcpiOsExtGetRootPointer(void);
 extern "C" ACPI_STATUS AcpiOsExtExecute(ACPI_EXECUTE_TYPE Type, ACPI_OSD_EXEC_CALLBACK Function, void *Context);
 extern "C" void AcpiOsExtWaitEventsComplete(void);
+extern "C" ACPI_STATUS AcpiOsReadPCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 *Value, UInt32 Width);
+extern "C" ACPI_STATUS AcpiOsWritePCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 Value, UInt32 Width);
 
 IOWorkLoop *gAcpiOsThreadWorkLoop;
 IOCommandGate *gAcpiOsThreadCommandGate;
+IOSimpleLock *gAcpiOsPCILock;
 
 /* PCI config space stuff. */
-ACPI_MCFG_ALLOCATION gPCIFromPE;
-ACPI_MCFG_ALLOCATION *gPCIDataFromMCFG;
-size_t gPCIMCFGEntryCount;
-
-/* Enhanced PCI access state */
-static boolean_t gPCIEcamAvailable = false;
-static IOMemoryMap *gPCIEcamMap = NULL;
-static void *gPCIEcamVirtualBase = NULL;
+extern ACPI_TABLE_MCFG *gMCFGTable;       /* This is defined in PDACPIPlatformExpert.cpp */
+static ACPI_MCFG_ALLOCATION gPCIFromPE;
 
 IOLock *gAcpiOsExtMemoryMapLock;
 OSSet *gAcpiOsExtMemoryMapSet;
@@ -104,43 +101,6 @@ IOReturn AcpiOsThreadDispatch(OSObject *, void *field0, void *, void *, void *)
     return kIOReturnSuccess;
 }
 
-/*
- * Initialize ECAM/MMIO PCI Configuration Space Access
- * This sets up memory mapping for the PCI configuration space base
- * obtained from boot arguments or MCFG table.
- */
-static ACPI_STATUS InitializePCIEcam(void)
-{
-    if (gPCIEcamAvailable) {
-        return AE_OK;
-    }
-    
-    /* Use boot args data if available */
-    if (gPCIFromPE.Address != 0) {
-        ACPI_SIZE ecam_size = (gPCIFromPE.EndBusNumber - gPCIFromPE.StartBusNumber + 1) * 256 * 4096;
-        
-        IOMemoryDescriptor *desc = IOMemoryDescriptor::withAddressRange(
-            gPCIFromPE.Address, ecam_size, 
-            kIOMemoryDirectionInOut | kIOMemoryMapperNone, 
-            kernel_task
-        );
-        
-        if (desc) {
-            gPCIEcamMap = desc->map();
-            if (gPCIEcamMap) {
-                gPCIEcamVirtualBase = (void *)gPCIEcamMap->getVirtualAddress();
-                gPCIEcamAvailable = true;
-                
-                IOLog("ACPI: ECAM initialized at 0x%llx, buses %d-%d\n", 
-                      gPCIFromPE.Address, gPCIFromPE.StartBusNumber, gPCIFromPE.EndBusNumber);
-            }
-            desc->release();
-        }
-    }
-    
-    return gPCIEcamAvailable ? AE_OK : AE_NOT_FOUND;
-}
-
 ACPI_STATUS AcpiOsExtInitialize(void)
 {
     /* Initialize local resources. */
@@ -164,8 +124,7 @@ ACPI_STATUS AcpiOsExtInitialize(void)
     gPCIFromPE.StartBusNumber = args->pciConfigSpaceStartBusNumber;
     gPCIFromPE.EndBusNumber = args->pciConfigSpaceEndBusNumber;
     
-    /* Initialize ECAM if available */
-    InitializePCIEcam();
+    gAcpiOsPCILock = IOSimpleLockAlloc();
     
     return AE_OK;
 }
@@ -312,6 +271,27 @@ void AcpiOsExtWaitEventsComplete(void)
     }
 }
 
+static IOPhysicalAddress AcpiOsGetPCIBaseAddress(ACPI_PCI_ID *PciId)
+{
+    /* Prioritize MCFG table over PCI data from the Boot Arguments */
+    if (gMCFGTable) {
+        UInt32 count = (gMCFGTable->Header.Length - sizeof(ACPI_TABLE_HEADER)) / sizeof(ACPI_MCFG_ALLOCATION);
+        for (uint32_t i = 0; i < count; i++) {
+            ACPI_MCFG_ALLOCATION *alloc = (ACPI_MCFG_ALLOCATION *)((gMCFGTable + sizeof(ACPI_TABLE_MCFG)) + (i * sizeof(ACPI_MCFG_ALLOCATION)));
+            if (PciId->Segment == alloc->PciSegment) {
+                return alloc->Address;
+            }
+        }
+    } else if (gPCIFromPE.PciSegment == PciId->Segment) {
+        return gPCIFromPE.Address;
+    }
+
+    return 0;
+}
+
+#define PIO_PCI_CONFIG_ADDRESS 0xCF8
+#define PIO_PCI_CONFIG_DATA    0xCFC
+
 /*
  * Enhanced PCI Configuration Space Access using ECAM/MMIO
  * This implements the missing AcpiOsReadPCIConfigSpace function
@@ -325,33 +305,53 @@ ACPI_STATUS AcpiOsReadPCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 *Val
     if (Width != 8 && Width != 16 && Width != 32) {
         return AE_BAD_PARAMETER;
     }
+
+    IOPhysicalAddress base = AcpiOsGetPCIBaseAddress(PciId);
     
     /* Try ECAM/MMIO first if available */
-    if (gPCIEcamAvailable && gPCIEcamVirtualBase &&
-        PciId->Bus >= gPCIFromPE.StartBusNumber && 
-        PciId->Bus <= gPCIFromPE.EndBusNumber) {
-        
+    if (base) {
         /* Calculate ECAM offset: (Bus << 20) + (Device << 15) + (Function << 12) + Register */
-        UInt32 bus_offset = (PciId->Bus - gPCIFromPE.StartBusNumber) << 20;
+        UInt32 bus_offset = (PciId->Bus) << 20;
         UInt32 device_offset = PciId->Device << 15;
         UInt32 function_offset = PciId->Function << 12;
         UInt32 total_offset = bus_offset + device_offset + function_offset + Reg;
-        
-        void *config_addr = (char *)gPCIEcamVirtualBase + total_offset;
-        
+    
         switch (Width) {
             case 8:
-                *Value = *(UInt8 *)config_addr;
+                *Value = PHYS_READ_8(base + total_offset);
+                return AE_OK;
+            case 16:
+                *Value = PHYS_READ_16(base + total_offset);
+                return AE_OK;
+            case 32:
+                *Value = PHYS_READ_32(base + total_offset);
+                return AE_OK;
+            default:
+                return AE_NOT_IMPLEMENTED;
+        }
+    } else {
+        UInt32 addr = 0x80000000 | (PciId->Bus << 16)
+                                 | (PciId->Device << 11)
+                                 | (PciId->Function << 8)
+                                 | (Reg & 0xFC);
+
+        IOSimpleLockLock(gAcpiOsPCILock);
+        ml_io_write32(PIO_PCI_CONFIG_ADDRESS, addr);
+        switch (Width) {
+            case 8:
+                *Value = ml_io_read8(PIO_PCI_CONFIG_DATA + (Reg & 3));
                 break;
             case 16:
-                *Value = *(UInt16 *)config_addr;
+                *Value = ml_io_read16(PIO_PCI_CONFIG_DATA + (Reg & 2));
                 break;
             case 32:
-                *Value = *(UInt32 *)config_addr;
+                *Value = ml_io_read32(PIO_PCI_CONFIG_DATA);
                 break;
+            default:
+                IOSimpleLockUnlock(gAcpiOsPCILock);
+                return AE_BAD_PARAMETER;
         }
-        
-        return AE_OK;
+        IOSimpleLockUnlock(gAcpiOsPCILock);
     }
     
     /* Fallback: This should call the legacy port I/O method */
@@ -373,32 +373,52 @@ ACPI_STATUS AcpiOsWritePCIConfigSpace(ACPI_PCI_ID *PciId, UInt32 Reg, UInt64 Val
         return AE_BAD_PARAMETER;
     }
     
+    IOPhysicalAddress base = AcpiOsGetPCIBaseAddress(PciId);
+    
     /* Try ECAM/MMIO first if available */
-    if (gPCIEcamAvailable && gPCIEcamVirtualBase &&
-        PciId->Bus >= gPCIFromPE.StartBusNumber && 
-        PciId->Bus <= gPCIFromPE.EndBusNumber) {
-        
+    if (base) {
         /* Calculate ECAM offset */
-        UInt32 bus_offset = (PciId->Bus - gPCIFromPE.StartBusNumber) << 20;
+        UInt32 bus_offset = (PciId->Bus) << 20;
         UInt32 device_offset = PciId->Device << 15;
         UInt32 function_offset = PciId->Function << 12;
         UInt32 total_offset = bus_offset + device_offset + function_offset + Reg;
         
-        void *config_addr = (char *)gPCIEcamVirtualBase + total_offset;
-        
         switch (Width) {
             case 8:
-                *(UInt8 *)config_addr = (UInt8)Value;
+                PHYS_WRITE_8(base + total_offset, Value);
+                return AE_OK;
+            case 16:
+                PHYS_WRITE_16(base + total_offset, Value);
+                return AE_OK;
+            case 32:
+                PHYS_WRITE_32(base + total_offset, Value);
+                return AE_OK;
+            default:
+                return AE_NOT_IMPLEMENTED;
+        }
+    } else {
+        UInt32 addr = 0x80000000 | (PciId->Bus << 16)
+                                 | (PciId->Device << 11)
+                                 | (PciId->Function << 8)
+                                 | (Reg & 0xFC);
+
+        IOSimpleLockLock(gAcpiOsPCILock);
+        ml_io_write32(PIO_PCI_CONFIG_ADDRESS, addr);
+        switch (Width) {
+            case 8:
+                ml_io_write8(PIO_PCI_CONFIG_DATA + (Reg & 3), Value);
                 break;
             case 16:
-                *(UInt16 *)config_addr = (UInt16)Value;
+                ml_io_write16(PIO_PCI_CONFIG_DATA + (Reg & 2), Value);
                 break;
             case 32:
-                *(UInt32 *)config_addr = (UInt32)Value;
+                ml_io_write32(PIO_PCI_CONFIG_DATA, Value);
                 break;
+            default:
+                IOSimpleLockUnlock(gAcpiOsPCILock);
+                return AE_BAD_PARAMETER;
         }
-        
-        return AE_OK;
+        IOSimpleLockUnlock(gAcpiOsPCILock);
     }
     
     /* Fallback: This should call the legacy port I/O method */
@@ -508,14 +528,6 @@ ACPI_STATUS AcpiOsExtTerminate(void)
 {
     /* Wait for all pending executions to complete */
     AcpiOsExtWaitEventsComplete();
-    
-    /* Cleanup ECAM mapping */
-    if (gPCIEcamMap) {
-        gPCIEcamMap->release();
-        gPCIEcamMap = NULL;
-        gPCIEcamVirtualBase = NULL;
-        gPCIEcamAvailable = false;
-    }
     
     /* Cleanup work loop and command gate */
     if (gAcpiOsThreadCommandGate) {

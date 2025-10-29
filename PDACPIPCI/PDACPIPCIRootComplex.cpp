@@ -31,17 +31,4 @@
  * Created by github.com/csekel (InSaneDarwin)
  */
 
-#include "accommon.h"
-#include "acpi.h"
-#include <IOKit/IOKitLib.h>
-#include "PDACPIPlatform/PDACPIPlatformPrivate.h"
-
-ACPI_STATUS
-AcpiOsGetTableByIndex(
-    UINT32                  Index,
-    ACPI_TABLE_HEADER       **Table,
-    UINT32                  *Instance,
-    ACPI_PHYSICAL_ADDRESS   *Address)
-{
-    return AE_NOT_IMPLEMENTED;
-}
+#include "PDACPIPCIRootComplex.h"

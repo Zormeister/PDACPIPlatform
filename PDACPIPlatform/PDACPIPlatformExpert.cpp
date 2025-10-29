@@ -34,13 +34,21 @@
 */
 
 #include "PDACPIPlatformExpert.h"
+#include "PDACPICPUInterruptController.h"
+#include "PDACPIPlatformPrivate.h"
 #include <IOKit/IOLib.h>
+#include <IOKit/IODeviceTreeSupport.h>
 
 #if __has_include(<IOKit/pci/IOPCIPrivate.h>)
 #include <IOKit/pci/IOPCIPrivate.h>
 #else
 extern IOReturn IOPCIPlatformInitialize(void);
 #endif
+
+extern "C" {
+#include "accommon.h"
+#include "actbl.h"
+};
 
 /* The following globals are for interactions with the AppleAPIC driver, which has source code! */
 /* see https://github.com/apple-oss-distributions/AppleAPIC */
@@ -50,6 +58,22 @@ const OSSymbol *gIOAPICBaseVectorNumberKey;
 const OSSymbol *gIOAPICIDKey;
 const OSSymbol *gIOAPICHandleSleepWakeFunction;
 const OSSymbol *gIOAPICSetVectorPhysicalDestination;
+
+PDACPICPUInterruptController *gCPUInterruptController;
+
+extern IOReturn AcpiStatus2IOReturn(ACPI_STATUS stat);
+
+extern "C" ACPI_TABLE_FADT* getFADT();
+extern "C" void outw(uint16_t port, uint16_t val);
+extern "C" void IOSleep(uint32_t ms);
+extern "C" vm_offset_t ml_static_ptovirt(vm_offset_t);
+extern "C" kern_return_t
+ml_processor_register(
+    cpu_id_t        cpu_id,
+    uint32_t        lapic_id,
+    processor_t     *processor_out,
+    boolean_t       boot_cpu,
+    boolean_t       start);
 
 #pragma mark - PDACPIPlatformExpertGlobals
 
@@ -102,14 +126,16 @@ PDACPIPlatformExpertGlobals::~PDACPIPlatformExpertGlobals()
 OSDefineMetaClassAndStructors(PDACPIPlatformExpert, IOACPIPlatformExpert);
 
 ACPI_TABLE_MADT *gAPICTable;
+ACPI_TABLE_MCFG *gMCFGTable;
 
-/* AcpiOsLayer.cpp */
-extern ACPI_MCFG_ALLOCATION *gPCIDataFromMCFG;
-extern size_t gPCIMCFGEntryCount;
-
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::initializeACPICA
+//---------------------------------------------------------------------------
 bool PDACPIPlatformExpert::initializeACPICA()
 {
     /* No need to init OSL seperately. AcpiInitializeSubsystem calls it as one of it's first calls. */
+    kprintf("ACPI: ACPI CA %8X\n", ACPI_CA_VERSION);
+    kprintf("ACPI: AcpiDbgLayer=%x, AcpiDbgLevel=%x", AcpiDbgLayer, AcpiDbgLevel);
 
     ACPI_STATUS status = AcpiInitializeSubsystem();
     if (ACPI_FAILURE(status)) {
@@ -139,8 +165,16 @@ bool PDACPIPlatformExpert::initializeACPICA()
     /* the system-type field is derived from the FADT, i think. */
     this->m_provider->setProperty("system-type", &AcpiGbl_FADT.PreferredProfile, 1);
     
+    /* Document all of our available tables into an OSDictionary, this will be used by IOPCIFamily (and potentially future clients?) */
     this->catalogACPITables();
-    this->fetchPCIData();
+    
+    /* Initialize IOPCIFamily and the IOMMU mapper */
+    if (!this->initPCI()) {
+        panic("ACPI: Failed to initialize PCI.");
+    }
+    
+    /* Initialized at PDACPIPlatformExpert::enumerateProcessors */
+    gCPUInterruptController = OSTypeAlloc(PDACPICPUInterruptController);
 
     /* We can't enable the Events subsystem or IRQ subsystem yet; we need IOCPU subclasses */
     status = AcpiEnableSubsystem(ACPI_NO_EVENT_INIT | ACPI_NO_HANDLER_INIT);
@@ -150,7 +184,8 @@ bool PDACPIPlatformExpert::initializeACPICA()
         return false;
     }
 
-    status = AcpiInitializeObjects(ACPI_FULL_INITIALIZATION);
+    /* This is a critical point in time, and we should be cautious as to what we do before kickstarting the whole subsystem. */
+    status = AcpiInitializeObjects(ACPI_NO_DEVICE_INIT);
     if (ACPI_FAILURE(status)) {
         IOLog("PDACPIPlatformExpert::start - [ERROR] AcpiInitializeObjects failed with status %s\n", AcpiFormatException(status));
         AcpiTerminate(); // Cleanup
@@ -158,46 +193,71 @@ bool PDACPIPlatformExpert::initializeACPICA()
     }
     
     /* First, enumerate the Processor namespace to get the number of available CPUs in ACPI. */
+    this->initACPIPlane();
+    
+    /* By this point, we should have all CPUs defined in both IODeviceTree:/cpus and the IOACPIPlane, and the IOService plane of course. */
+    
 }
 
-/* this is so IOPCIFamily gets our ACPI tables. */
-OSObject *PDACPIPlatformExpert::copyProperty(const char *property) const
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::initPCI
+//---------------------------------------------------------------------------
+bool PDACPIPlatformExpert::initPCI()
 {
-    if (strncmp(property, "ACPI Tables", strlen(property)) == 0) {
-        return this->m_tableDict->copyCollection();
+    /* Kindly tell IOPCIFamily to initialize MMIO mapping services. */
+    /* If AppleVTD is integrated with IOPCIFamily should IOPCIFamily be extended with an AMD IOMMU driver? Or should another kext do that job? */
+    if (IOPCIPlatformInitialize() == kIOReturnSuccess) {
+        return true;
     }
     
-    return super::copyProperty(property);
+    return false;
 }
 
-bool PDACPIPlatformExpert::fetchPCIData()
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::initACPIPlane
+//---------------------------------------------------------------------------
+bool PDACPIPlatformExpert::initACPIPlane()
 {
-    const OSData *table = this->getACPITableData("MCFG", 0);
+    /* As I have discovered, objects can be set to have different names on a per-plane basis. */
+    this->m_provider->setName("acpi", gIOACPIPlane);
+    this->m_provider->attachToParent(IORegistryEntry::getRegistryRoot(), gIOACPIPlane);
     
-    if (!table) {
-        IOLog("ACPI: No MCFG table found in the ACPI table collection.\n");
+    /* Create the CPUs set of entries for IODeviceTree + IOACPIPlane */
+    IOPlatformDevice *dev = OSTypeAlloc(IOPlatformDevice);
+    
+    if (dev) {
+        if (!dev->init()) {
+            OSSafeReleaseNULL(dev);
+            return false;
+        }
+        
+        dev->setName("cpus");
+
+        /* HACK: trick setProperty into creating an OSData */
+        dev->setProperty("name", (void *)"cpus", sizeof("cpus"));
+        dev->attachToParent(this->m_provider, gIODTPlane);
+        dev->attach(this);
+        dev->registerService();
+        
+        
+        this->createCPUNubs(dev);
     }
     
-    ACPI_TABLE_MCFG *mcfg = (ACPI_TABLE_MCFG *)table->getBytesNoCopy();
-
-    gPCIMCFGEntryCount = (mcfg->Header.Length - sizeof(ACPI_TABLE_MCFG)) / sizeof(ACPI_MCFG_ALLOCATION);
-    gPCIDataFromMCFG = (ACPI_MCFG_ALLOCATION *)(table->getBytesNoCopy() + sizeof(ACPI_TABLE_MCFG));
-    
-    /* While we're here; kindly tell IOPCIFamily to initialize MMIO mapping services. */
-    IOPCIPlatformInitialize();
-    
-    return true;
+    return false;
 }
 
-/* This was based off of osbsdtbl.c's shenanigans */
-struct AcpiTableMap {
-    char Signature[4];
-    UInt8 instance;
-    ACPI_TABLE_HEADER *Tbl; /* well we've already mapped the damn thing so, might as well reuse the pointer. */
-};
-
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::catalogACPITables
+//---------------------------------------------------------------------------
 bool PDACPIPlatformExpert::catalogACPITables()
 {
+    /* This was based off of osbsdtbl.c's shenanigans */
+    struct AcpiTableMap {
+        char Signature[4];
+        UInt8 instance;
+        ACPI_TABLE_HEADER *Tbl; /* well we've already mapped the damn thing so, might as well reuse the pointer. */
+    };
+    
     char name[32];
     ACPI_TABLE_HEADER *Table;
     UInt32 tables = AcpiGbl_RootTableList.CurrentTableCount;
@@ -230,6 +290,13 @@ bool PDACPIPlatformExpert::catalogACPITables()
         } else {
             snprintf(name, 32, "%4.4s", tmp[k].Tbl->Signature);
         }
+        
+        /* Store these tables as we find them; they'll be used later. */
+        if (strncmp(name, ACPI_SIG_MADT, 4) == 0) {
+            gAPICTable = (ACPI_TABLE_MADT *)tmp[k].Tbl;
+        } else if (strncmp(name, ACPI_SIG_MCFG, 4) == 0) {
+            gMCFGTable = (ACPI_TABLE_MCFG *)tmp[k].Tbl;
+        }
 
         this->m_tableDict->setObject(name, data);
         OSSafeReleaseNULL(data);
@@ -240,62 +307,134 @@ bool PDACPIPlatformExpert::catalogACPITables()
     return true;
 }
 
-const OSData *PDACPIPlatformExpert::getACPITableData(const char *name, UInt32 TableIndex)
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::createCPUNubs
+//---------------------------------------------------------------------------
+
+struct PDACPICPUWalkContext {
+    PDACPIPlatformExpert *platformExpert;
+    IOPlatformDevice *parent;
+    UInt32 count;
+};
+
+void PDACPIPlatformExpert::createCPUNubs(IOPlatformDevice *nub)
 {
-    char tbl[32];
-
-    if (TableIndex > 0) {
-        snprintf(tbl, 32, "%4.4s-%u", name, TableIndex);
-    } else {
-        snprintf(tbl, 32, "%4.4s", name);
-    }
-
-    OSObject *obj = this->m_tableDict->getObject(name);
-    if (obj) {
-        return OSDynamicCast(OSData, obj);
-    }
+    PDACPICPUWalkContext ctx = {this, nub};
     
-    return nullptr;
+    AcpiWalkNamespace(ACPI_TYPE_PROCESSOR,
+                      ACPI_ROOT_OBJECT, 1,
+                      &processorNamespaceWalk,
+                      NULL, &ctx, NULL);
+
+    /* processorNamespaceWalk should check for ACPI0007 devices, and only create CPU objects. */
+    AcpiWalkNamespace(ACPI_TYPE_DEVICE,
+                      ACPI_ROOT_OBJECT, 1,
+                      &processorNamespaceWalk,
+                      NULL, &ctx, NULL);
 }
 
-bool PDACPIPlatformExpert::start(IOService *provider)
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::processorNamespaceWalk
+//---------------------------------------------------------------------------
+ACPI_STATUS PDACPIPlatformExpert::processorNamespaceWalk(ACPI_HANDLE Handle,
+                                                         UInt32 NestingLevel,
+                                                         void *Context,
+                                                         void **ReturnValue)
 {
-    IOLog("PDACPIPlatformExpert::start - Initializing ACPICA\n"); // Modified log
-
-    if (!super::start(provider)) {
-        IOLog("PDACPIPlatformExpert::start - super::start failed\n");
-        return false;
-    }
+    ACPI_DEVICE_INFO *deviceInfo;
+    PDACPICPUWalkContext *ctx = (PDACPICPUWalkContext *)Context;
     
-    this->m_provider = OSDynamicCast(IOPlatformExpertDevice, provider);
+    AcpiGetObjectInfo(Handle, &deviceInfo);
     
-    /* Respond to certain boot arguemnts */
-    PE_parse_boot_argn("acpi_layer", &AcpiDbgLayer, 4);
-    PE_parse_boot_argn("acpi_level", &AcpiDbgLevel, 4);
-
-    if (!this->initializeACPICA()) {
-        panic("ACPI: ACPICA layer failed to initialize.\n");
+    switch (deviceInfo->Type) {
+        case ACPI_TYPE_PROCESSOR: {
+            break;
+        }
+        case ACPI_TYPE_DEVICE:
+            break;
+        default:
+            break;
     }
-
-    IOLog("PDACPIPlatformExpert::start - [SUCCESS] ACPICA Initialized successfully.\n");
-
-    // The service should be registered after successful initialization.
-    registerService();
-    IOLog("PDACPIPlatformExpert::start - Service registered.\n");
-
-    return true;
 }
 
-void PDACPIPlatformExpert::stop(IOService *provider)
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::createNub
+//---------------------------------------------------------------------------
+IOACPIPlatformDevice *PDACPIPlatformExpert::createNub(IOService *parent, ACPI_HANDLE handle)
 {
-    IOLog("PDACPIPlatformExpert::stop\n");
-    super::stop(provider);
+    ACPI_DEVICE_INFO *info;
+    IOACPIPlatformDevice *nub = OSTypeAlloc(IOACPIPlatformDevice);
+    PDACPIHandle *hndl = (PDACPIHandle *)IOMallocZero(sizeof(PDACPIHandle));
+    
+    hndl->sig = PDACPI_HANDLE_SIG;
+    hndl->fACPICAHandle = handle;
+    
+    //nub->init(this, hndl, parent);
+    
+    return nub;
 }
 
-extern "C" ACPI_TABLE_FADT* getFADT();
-extern "C" void outw(uint16_t port, uint16_t val);
-extern "C" void IOSleep(uint32_t ms);
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::enumerateProcessors
+//---------------------------------------------------------------------------
+void PDACPIPlatformExpert::enumerateProcessors()
+{
+    UInt32 processorCount;
+    processor_t proc; /* This is to avoid anything going wrong. */
 
+    /*
+     * This function aims to provide the i386 machine_routines subsystem with an accurate count of
+     * logical processors that are available. eg: the Enabled bit is set.
+     *
+     * Later down the track during IOKit matching, PDACPICPU will call into ml_register_processor again to boot and start the CPUs.
+     *
+     * PDACPIPlatformExpert::start is the beginning of initialising the system, PDACPICPU picks up from where it leaves off and finalises
+     * the IOKit Platform Expert initialisation as IOKit will panic if it can't find any CPUs.
+     *
+     * This will ALSO be backed by the AppleAPIC driver, as it manages the I/O APICs.
+     */
+    
+    /* Assume that the host has only one logical processor if there's no MADT. */
+    if (!gAPICTable) {
+        kprintf("ACPI: No APIC table, assuming one logical CPU.\n");
+        // ml_processor_register(NULL, 0, &proc, false, false);
+        return;
+    }
+    
+    UInt32 size = gAPICTable->Header.Length -= sizeof(ACPI_TABLE_MADT);
+    
+    kprintf("ACPI: LAPIC Base: 0x%X\n", gAPICTable->Address);
+    
+    ACPI_SUBTABLE_HEADER *sub = (ACPI_SUBTABLE_HEADER *)(((uint8_t *)gAPICTable) + sizeof(ACPI_TABLE_MADT));
+    
+    while (0 != size) {
+        switch (sub->Type) {
+            case ACPI_MADT_TYPE_LOCAL_APIC: {
+                ACPI_MADT_LOCAL_APIC *apic = (ACPI_MADT_LOCAL_APIC *)sub;
+                kprintf("ACPI: ProcessorId=%d LocalApicId=%d %s", apic->ProcessorId,
+                            apic->Id,
+                            apic->LapicFlags & ACPI_MADT_ENABLED ? "Enabled" : "Disabled");
+                if (apic->LapicFlags & ACPI_MADT_ENABLED) {
+                    ml_processor_register(NULL, apic->Id, &proc, false, false);
+                    processorCount++;
+                }
+                size -= sub->Length;
+                sub = (ACPI_SUBTABLE_HEADER *)(((uint8_t *)sub) + apic->Header.Length);
+                break;
+            }
+                
+            default:
+                break;
+        }
+    }
+    
+    /* Prepare the CPUInterruptController for PDACPICPU spam */
+    gCPUInterruptController->initCPUInterruptController(processorCount);
+}
+
+//---------------------------------------------------------------------------
+// PDACPIPlatformExpert::performACPIPowerOff
+//---------------------------------------------------------------------------
 void PDACPIPlatformExpert::performACPIPowerOff()
 {
     ACPI_TABLE_FADT* fadt = getFADT();
@@ -322,89 +461,4 @@ void PDACPIPlatformExpert::performACPIPowerOff()
 
     IOSleep(10000);
     while (1) asm volatile("hlt");
-}
-
-IOReturn PDACPIPlatformExpert::registerAddressSpaceHandler(IOACPIPlatformDevice *,
-                                                           IOACPIAddressSpaceID spaceID,
-                                                           IOACPIAddressSpaceHandler Handler,
-                                                           void *context, IOOptionBits options)
-{
-    /* We don't care about the specific device; we care about the handler itself */
-    switch (spaceID) {
-        case kIOACPIAddressSpaceIDEmbeddedController:
-            this->m_ecSpaceHandler = Handler;
-            this->m_ecSpaceContext = context;
-            IOLog("PDACPIPlatformExpert::%s: Registered handler for the EC address space\n", __PRETTY_FUNCTION__);
-            return kIOReturnSuccess;
-        case kIOACPIAddressSpaceIDSMBus:
-            this->m_smbusSpaceHandler = Handler;
-            this->m_smbusSpaceContext = context;
-            IOLog("PDACPIPlatformExpert::%s: Registered handler for the SMBus address space\n", __PRETTY_FUNCTION__);
-            return kIOReturnSuccess;
-        default:
-            IOLog("PDACPIPlatformExpert::%s: Invalid attempt at registering an address space handler\n", __PRETTY_FUNCTION__);
-            return kIOReturnInvalid;
-    }
-}
-
-void PDACPIPlatformExpert::unregisterAddressSpaceHandler(IOACPIPlatformDevice *,
-                                                         IOACPIAddressSpaceID spaceID,
-                                                         IOACPIAddressSpaceHandler,
-                                                         IOOptionBits)
-{
-    /* Remove the specified handlers */
-    switch (spaceID) {
-        case kIOACPIAddressSpaceIDEmbeddedController:
-            this->m_ecSpaceHandler = nullptr;
-            this->m_ecSpaceContext = nullptr;
-            IOLog("PDACPIPlatformExpert::%s: Removed handler for the EC address space\n", __PRETTY_FUNCTION__);
-            return;
-        case kIOACPIAddressSpaceIDSMBus:
-            this->m_smbusSpaceHandler = nullptr;
-            this->m_smbusSpaceContext = nullptr;
-            IOLog("PDACPIPlatformExpert::%s: Removed handler for the SMBus address space\n", __PRETTY_FUNCTION__);
-            return;
-        default:
-            IOLog("PDACPIPlatformExpert::%s: Invalid attempt at removing an address space handler\n", __PRETTY_FUNCTION__);
-            break;
-    }
-}
-
-IOReturn PDACPIPlatformExpert::readAddressSpace(UInt64 *value,
-                                                IOACPIAddressSpaceID spaceID,
-                                                IOACPIAddress address,
-                                                UInt32 bitWidth,
-                                                UInt32 bitOffset,
-                                                IOOptionBits options)
-{
-    switch (spaceID) {
-        case kIOACPIAddressSpaceIDSystemMemory: {
-            ACPI_STATUS status = AcpiOsReadMemory(address.addr64, value, bitWidth);
-            if (ACPI_FAILURE(status)) {
-                return kIOReturnError;
-            } else {
-                return kIOReturnSuccess;
-            }
-            break;
-        }
-        case kIOACPIAddressSpaceIDSystemIO: {
-            ACPI_STATUS status = AcpiOsReadPort((ACPI_IO_ADDRESS)address.addr64, (UInt32 *)value, bitWidth);
-            if (ACPI_FAILURE(status)) {
-                return kIOReturnError;
-            } else {
-                return kIOReturnSuccess;
-            }
-            break;
-        }
-        case kIOACPIAddressSpaceIDEmbeddedController:
-            if (this->m_ecSpaceHandler && this->m_ecSpaceContext) {
-                return this->m_ecSpaceHandler(kIOACPIAddressSpaceOpRead, address, value, bitWidth, bitOffset, this->m_ecSpaceContext);
-            }
-        case kIOACPIAddressSpaceIDSMBus:
-            if (this->m_smbusSpaceHandler && this->m_smbusSpaceContext) {
-                return this->m_smbusSpaceHandler(kIOACPIAddressSpaceOpRead, address, value, bitWidth, bitOffset, this->m_smbusSpaceContext);
-            }
-        default:
-            break;
-    }
 }

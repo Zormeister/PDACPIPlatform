@@ -35,26 +35,45 @@
 #define _PDACPIPLATFORM_PRIVATE_H
 
 #include <IOKit/IOLib.h>
+
+#if __cplusplus
+extern "C" {
+#endif
+
 #include "acpi.h"
+
+#ifdef __cplusplus
+};
+#endif
+
+#if KERNEL && PDACPI_BUILDING_PLATFORM
+
+/* PDACPIPlatformExpert private definitions - not for use in userspace nor by any clients */
+
+/* This is so we can store extra data in the future */
+#define PDACPI_HANDLE_SIG 'pdah'
+
+struct PDACPIHandle {
+    UInt32 sig;
+    ACPI_HANDLE fACPICAHandle; /* The ACPICA handle for the object/IOACPIPlatformDevice */
+    
+    /* Add any additional data as needed, like resources, etc. */
+};
+
+#else
+
+#endif
 
 #define PDACPIPLATFORMUC_TYPE 'pdac'
 
 enum PDACPIUserClientMethods {
-    kPDACPIPlatformUserClientGetTableByName = 1,
-    kPDACPIPlatformUserClientGetTableByIndex = 2,
-    kPDACPIPlatformUserClientGetTableByAddress = 3,
+    kPDACPIPlatformUserClientGetTables = 1
 };
 
-struct PDACPIUCGetTableByNameInput {
-    char tableName[32];
-};
-
-struct PDACPIUCGetTableByIndexInput {
-    size_t index;
-};
-
-struct PDACPIUCGetTableByAddressInput {
-    ACPI_PHYSICAL_ADDRESS address;
+struct PDACPITableDescriptor {
+    char signature[8];              /* AcpiOsGetTableByName */
+    size_t offset;                  /* Offset of the table into the collection */
+    ACPI_PHYSICAL_ADDRESS address;  /* AcpiOsGetTableByAddress */
 };
 
 struct PDACPIUCGetTableOutput {

@@ -51,7 +51,7 @@ ml_processor_register(
     boolean_t       start);
 #endif
 
-PDACPICPUInterruptController *gCPUInterruptController;
+extern PDACPICPUInterruptController *gCPUInterruptController;
 
 #define super IOService
 OSDefineMetaClassAndStructors(PDACPICPU, IOCPU)
@@ -111,6 +111,10 @@ bool PDACPICPU::start(IOService *provider)
 void PDACPICPU::initCPU(bool boot)
 {
     /* mmm... */
+    if (boot) {
+        gCPUInterruptController->enableCPUInterrupt(this);
+    }
+
     this->setCPUState(kIOCPUStateRunning);
 }
 

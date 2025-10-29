@@ -7,10 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7E12EA902EA98CF000EEC84B /* osunixxf.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDD2DE13E2500349FD5 /* osunixxf.c */; };
+		7E12EA912EA98CF100EEC84B /* osunixxf.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDD2DE13E2500349FD5 /* osunixxf.c */; };
+		7E12EA922EA98D0800EEC84B /* osunixmap.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDC2DE13E2500349FD5 /* osunixmap.c */; };
+		7E12EA932EA98D0800EEC84B /* osunixmap.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDC2DE13E2500349FD5 /* osunixmap.c */; };
+		7E12EA942EA98D1B00EEC84B /* osunixdir.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDB2DE13E2500349FD5 /* osunixdir.c */; };
+		7E12EA952EA98D1C00EEC84B /* osunixdir.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CDB2DE13E2500349FD5 /* osunixdir.c */; };
+		7E12EA962EA9971800EEC84B /* osdarwintbl.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E6561152EA754DC0051A78A /* osdarwintbl.c */; };
+		7E12EA982EA9B29000EEC84B /* PDACPIPlatformExpertOverrides.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7E12EA972EA9B29000EEC84B /* PDACPIPlatformExpertOverrides.cpp */; };
+		7E5EE1382EAC8277006AF949 /* PDACPIPCIRootComplex.h in Headers */ = {isa = PBXBuildFile; fileRef = 7E5EE1372EAC8277006AF949 /* PDACPIPCIRootComplex.h */; };
+		7E5EE13A2EAC8277006AF949 /* PDACPIPCIRootComplex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7E5EE1392EAC8277006AF949 /* PDACPIPCIRootComplex.cpp */; };
+		7E622C382EAC1DDA00742B43 /* ACPICASupport.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E622C372EAC1DDA00742B43 /* ACPICASupport.c */; };
 		7E6561122EA754500051A78A /* apfiles.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E6560282EA732970051A78A /* apfiles.c */; };
 		7E6561132EA754560051A78A /* apdump.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E6560262EA732970051A78A /* apdump.c */; };
 		7E6561142EA754590051A78A /* apmain.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E6560252EA732970051A78A /* apmain.c */; };
-		7E6561162EA754DC0051A78A /* osdarwintbl.c in Sources */ = {isa = PBXBuildFile; fileRef = 7E6561152EA754DC0051A78A /* osdarwintbl.c */; };
 		7E65611A2EA75BB50051A78A /* libacpica.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7E6561032EA752A10051A78A /* libacpica.a */; };
 		7E6561282EA75C2A0051A78A /* utaddress.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C9B2DE13E2500349FD5 /* utaddress.c */; };
 		7E6561292EA75C310051A78A /* utalloc.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C9C2DE13E2500349FD5 /* utalloc.c */; };
@@ -363,8 +373,6 @@
 		F01A4DC22DE13E2500349FD5 /* utcksum.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4CA02DE13E2500349FD5 /* utcksum.c */; };
 		F01A4DC32DE13E2500349FD5 /* nsrepair.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C6D2DE13E2500349FD5 /* nsrepair.c */; };
 		F01A4DC42DE13E2500349FD5 /* evxfregn.c in Sources */ = {isa = PBXBuildFile; fileRef = F01A4C362DE13E2500349FD5 /* evxfregn.c */; };
-		F01A4E0D2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */; };
-		F01A4E0E2DE15F6800349FD5 /* PDACPIPCIRootBridge.h in Headers */ = {isa = PBXBuildFile; fileRef = F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */; };
 		F02692622DED901800349FD5 /* PDACPICPUInterruptController.h in Headers */ = {isa = PBXBuildFile; fileRef = F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */; };
 		F02692632DED901800349FD5 /* PDACPICPUInterruptController.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */; };
 		F043C1642DE30E1F00349FD5 /* PDACPIRTC.kext in CopyFiles */ = {isa = PBXBuildFile; fileRef = F043C1562DE30CDC00349FD5 /* PDACPIRTC.kext */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -414,6 +422,14 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7E12EA972EA9B29000EEC84B /* PDACPIPlatformExpertOverrides.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIPlatformExpertOverrides.cpp; sourceTree = "<group>"; };
+		7E5EE12F2EAC740F006AF949 /* limits.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = limits.h; sourceTree = "<group>"; };
+		7E5EE1352EAC8277006AF949 /* PDACPIPCIDriver.kext */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PDACPIPCIDriver.kext; sourceTree = BUILT_PRODUCTS_DIR; };
+		7E5EE1372EAC8277006AF949 /* PDACPIPCIRootComplex.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPIPCIRootComplex.h; sourceTree = "<group>"; };
+		7E5EE1392EAC8277006AF949 /* PDACPIPCIRootComplex.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIPCIRootComplex.cpp; sourceTree = "<group>"; };
+		7E5EE13B2EAC8277006AF949 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		7E5EE1402EAC877D006AF949 /* IOPCIPrivate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOPCIPrivate.h; sourceTree = "<group>"; };
+		7E622C372EAC1DDA00742B43 /* ACPICASupport.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = ACPICASupport.c; sourceTree = "<group>"; };
 		7E6560202EA732970051A78A /* acpixtract.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = acpixtract.h; sourceTree = "<group>"; };
 		7E6560212EA732970051A78A /* axutils.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = axutils.c; sourceTree = "<group>"; };
 		7E6560222EA732970051A78A /* acpixtract.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = acpixtract.c; sourceTree = "<group>"; };
@@ -872,8 +888,6 @@
 		F01A4CDF2DE13E2500349FD5 /* oswintbl.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = oswintbl.c; sourceTree = "<group>"; };
 		F01A4CE02DE13E2500349FD5 /* oswinxf.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = oswinxf.c; sourceTree = "<group>"; };
 		F01A4CE12DE13E2500349FD5 /* oszephyr.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = oszephyr.c; sourceTree = "<group>"; };
-		F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPIPCIRootBridge.h; sourceTree = "<group>"; };
-		F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPIPCIRootBridge.cpp; sourceTree = "<group>"; };
 		F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = PDACPICPUInterruptController.h; sourceTree = "<group>"; };
 		F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = PDACPICPUInterruptController.cpp; sourceTree = "<group>"; };
 		F043C14E2DE2CAF100349FD5 /* IOCPU.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = IOCPU.h; sourceTree = "<group>"; };
@@ -885,6 +899,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		7E5EE1322EAC8277006AF949 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7E6561012EA752A10051A78A /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -924,6 +945,24 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		7E5EE1362EAC8277006AF949 /* PDACPIPCI */ = {
+			isa = PBXGroup;
+			children = (
+				7E5EE1372EAC8277006AF949 /* PDACPIPCIRootComplex.h */,
+				7E5EE1392EAC8277006AF949 /* PDACPIPCIRootComplex.cpp */,
+				7E5EE13B2EAC8277006AF949 /* Info.plist */,
+			);
+			path = PDACPIPCI;
+			sourceTree = "<group>";
+		};
+		7E5EE13F2EAC8600006AF949 /* pci */ = {
+			isa = PBXGroup;
+			children = (
+				7E5EE1402EAC877D006AF949 /* IOPCIPrivate.h */,
+			);
+			path = pci;
+			sourceTree = "<group>";
+		};
 		7E65601E2EA732970051A78A /* tools */ = {
 			isa = PBXGroup;
 			children = (
@@ -1226,9 +1265,11 @@
 		8C084B832DC334D50010499B = {
 			isa = PBXGroup;
 			children = (
+				F043C14B2DE2CA6B00349FD5 /* ExternalHeaders */,
 				F01A4BAF2DE13D2D00349FD5 /* PDACPIPlatform */,
 				F01A4BAD2DE13C9400349FD5 /* ACPICA */,
 				F043C1682DE30E2E00349FD5 /* PDACPIRTC */,
+				7E5EE1362EAC8277006AF949 /* PDACPIPCI */,
 				8C084B8E2DC334D60010499B /* Products */,
 				7E6561192EA75BB50051A78A /* Frameworks */,
 			);
@@ -1242,6 +1283,7 @@
 				7E6561032EA752A10051A78A /* libacpica.a */,
 				7E65610B2EA754390051A78A /* acpidump */,
 				7E6561522EA761FD0051A78A /* iasl */,
+				7E5EE1352EAC8277006AF949 /* PDACPIPCIDriver.kext */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -1270,22 +1312,21 @@
 		F01A4BAF2DE13D2D00349FD5 /* PDACPIPlatform */ = {
 			isa = PBXGroup;
 			children = (
-				F043C14B2DE2CA6B00349FD5 /* ExternalHeaders */,
 				F01A4BA92DE139B500349FD5 /* AcpiOsLayer.cpp */,
 				F01A4A322DE12FE100349FD5 /* fadt_locator.cpp */,
 				F01A4A332DE12FE100349FD5 /* PDACPICPU.cpp */,
 				F02692612DED901800349FD5 /* PDACPICPUInterruptController.cpp */,
+				7E12EA972EA9B29000EEC84B /* PDACPIPlatformExpertOverrides.cpp */,
 				F01A4A342DE12FE100349FD5 /* PDACPIPlatformExpert.cpp */,
-				F01A4E0C2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp */,
 				F01A4B5E2DE12FE100349FD5 /* pci_config_access.h */,
 				7E6561412EA75E400051A78A /* PDACPIPlatformPrivate.h */,
 				F01A4B5F2DE12FE100349FD5 /* PDACPICPU.h */,
 				F02692602DED901800349FD5 /* PDACPICPUInterruptController.h */,
 				F01A4B602DE12FE100349FD5 /* PDACPIPlatformExpert.h */,
-				F01A4E0B2DE15F6800349FD5 /* PDACPIPCIRootBridge.h */,
 				F01A4BA52DE12FE100349FD5 /* ACPICA_LICENSE */,
 				F01A4BA62DE12FE100349FD5 /* Info.plist */,
 				F01A4BA72DE12FE100349FD5 /* LICENSE.txt */,
+				7E622C372EAC1DDA00742B43 /* ACPICASupport.c */,
 			);
 			path = PDACPIPlatform;
 			sourceTree = "<group>";
@@ -1656,6 +1697,7 @@
 				7E6560F42EA73E860051A78A /* amlcode.h */,
 				7E6560CC2EA73E830051A78A /* amlresrc.h */,
 				7E6560D22EA73E840051A78A /* platform */,
+				7E5EE12F2EAC740F006AF949 /* limits.h */,
 			);
 			path = include;
 			sourceTree = "<group>";
@@ -1671,6 +1713,7 @@
 		F043C14C2DE2CA7200349FD5 /* IOKit */ = {
 			isa = PBXGroup;
 			children = (
+				7E5EE13F2EAC8600006AF949 /* pci */,
 				F043C14E2DE2CAF100349FD5 /* IOCPU.h */,
 				F043C14F2DE2CAF100349FD5 /* IOPolledInterface.h */,
 			);
@@ -1690,6 +1733,14 @@
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
+		7E5EE1302EAC8277006AF949 /* Headers */ = {
+			isa = PBXHeadersBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E5EE1382EAC8277006AF949 /* PDACPIPCIRootComplex.h in Headers */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7E6560FF2EA752A10051A78A /* Headers */ = {
 			isa = PBXHeadersBuildPhase;
 			buildActionMask = 2147483647;
@@ -1705,7 +1756,6 @@
 				F02692622DED901800349FD5 /* PDACPICPUInterruptController.h in Headers */,
 				F01A4B7A2DE12FE100349FD5 /* pci_config_access.h in Headers */,
 				F01A4B852DE12FE100349FD5 /* PDACPIPlatformExpert.h in Headers */,
-				F01A4E0E2DE15F6800349FD5 /* PDACPIPCIRootBridge.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1720,6 +1770,24 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		7E5EE1342EAC8277006AF949 /* PDACPIPCIDriver */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 7E5EE13C2EAC8277006AF949 /* Build configuration list for PBXNativeTarget "PDACPIPCIDriver" */;
+			buildPhases = (
+				7E5EE1302EAC8277006AF949 /* Headers */,
+				7E5EE1312EAC8277006AF949 /* Sources */,
+				7E5EE1322EAC8277006AF949 /* Frameworks */,
+				7E5EE1332EAC8277006AF949 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = PDACPIPCIDriver;
+			productName = PureACPIPCI;
+			productReference = 7E5EE1352EAC8277006AF949 /* PDACPIPCIDriver.kext */;
+			productType = "com.apple.product-type.kernel-extension";
+		};
 		7E6561022EA752A10051A78A /* libacpica */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 7E6561042EA752A20051A78A /* Build configuration list for PBXNativeTarget "libacpica" */;
@@ -1821,6 +1889,10 @@
 			attributes = {
 				LastUpgradeCheck = 1630;
 				TargetAttributes = {
+					7E5EE1342EAC8277006AF949 = {
+						CreatedOnToolsVersion = 15.2;
+						ProvisioningStyle = Automatic;
+					};
 					7E6561022EA752A10051A78A = {
 						CreatedOnToolsVersion = 15.2;
 						ProvisioningStyle = Automatic;
@@ -1861,11 +1933,19 @@
 				7E6561022EA752A10051A78A /* libacpica */,
 				7E65610A2EA754390051A78A /* acpidump */,
 				7E6561512EA761FD0051A78A /* iasl */,
+				7E5EE1342EAC8277006AF949 /* PDACPIPCIDriver */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		7E5EE1332EAC8277006AF949 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F043C1542DE30CDC00349FD5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1883,6 +1963,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		7E5EE1312EAC8277006AF949 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7E5EE13A2EAC8277006AF949 /* PDACPIPCIRootComplex.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7E6561002EA752A10051A78A /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1912,7 +2000,6 @@
 				7E65612F2EA75C6B0051A78A /* utcopy.c in Sources */,
 				7E6561332EA75C7B0051A78A /* uterror.c in Sources */,
 				7E6561282EA75C2A0051A78A /* utaddress.c in Sources */,
-				7E6561162EA754DC0051A78A /* osdarwintbl.c in Sources */,
 				7E65612A2EA75C350051A78A /* utascii.c in Sources */,
 				7E6561342EA75C7E0051A78A /* uteval.c in Sources */,
 				7E65613C2EA75C9D0051A78A /* utmisc.c in Sources */,
@@ -1932,8 +2019,12 @@
 			buildActionMask = 2147483647;
 			files = (
 				7E6561142EA754590051A78A /* apmain.c in Sources */,
+				7E12EA952EA98D1C00EEC84B /* osunixdir.c in Sources */,
 				7E6561132EA754560051A78A /* apdump.c in Sources */,
 				7E6561122EA754500051A78A /* apfiles.c in Sources */,
+				7E12EA962EA9971800EEC84B /* osdarwintbl.c in Sources */,
+				7E12EA902EA98CF000EEC84B /* osunixxf.c in Sources */,
+				7E12EA932EA98D0800EEC84B /* osunixmap.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2039,7 +2130,9 @@
 				7E6561872EA762420051A78A /* dmtbinfo3.c in Sources */,
 				7E6561842EA762420051A78A /* ahuuids.c in Sources */,
 				7E6562762EA765060051A78A /* aslprepkg.c in Sources */,
+				7E12EA922EA98D0800EEC84B /* osunixmap.c in Sources */,
 				7E6562412EA765060051A78A /* aslrestype2w.c in Sources */,
+				7E12EA912EA98CF100EEC84B /* osunixxf.c in Sources */,
 				7E6562702EA765060051A78A /* dtutils.c in Sources */,
 				7E65626A2EA765060051A78A /* lex.yy.c in Sources */,
 				7E65626E2EA765060051A78A /* aslanalyze.c in Sources */,
@@ -2049,6 +2142,7 @@
 				7E6562822EA765060051A78A /* prparser.y in Sources */,
 				7E6562482EA765060051A78A /* aslpredef.c in Sources */,
 				7E6562472EA765060051A78A /* aslcache.c in Sources */,
+				7E12EA942EA98D1B00EEC84B /* osunixdir.c in Sources */,
 				7E6561812EA762420051A78A /* dmtbinfo.c in Sources */,
 				7E6561822EA762420051A78A /* adfile.c in Sources */,
 				7E6561762EA762420051A78A /* ahpredef.c in Sources */,
@@ -2147,6 +2241,7 @@
 				F01A4D3F2DE13E2500349FD5 /* dbinput.c in Sources */,
 				F01A4D402DE13E2500349FD5 /* dsobject.c in Sources */,
 				F01A4D412DE13E2500349FD5 /* nsarguments.c in Sources */,
+				7E12EA982EA9B29000EEC84B /* PDACPIPlatformExpertOverrides.cpp in Sources */,
 				F01A4D432DE13E2500349FD5 /* utlock.c in Sources */,
 				F01A4D442DE13E2500349FD5 /* tbxfroot.c in Sources */,
 				F01A4D452DE13E2500349FD5 /* nsxfeval.c in Sources */,
@@ -2175,7 +2270,6 @@
 				F01A4D632DE13E2500349FD5 /* psscope.c in Sources */,
 				F01A4D642DE13E2500349FD5 /* rsirq.c in Sources */,
 				F01A4D652DE13E2500349FD5 /* tbfadt.c in Sources */,
-				F01A4E0D2DE15F6800349FD5 /* PDACPIPCIRootBridge.cpp in Sources */,
 				F01A4D662DE13E2500349FD5 /* utmisc.c in Sources */,
 				F01A4D672DE13E2500349FD5 /* exmisc.c in Sources */,
 				F01A4D682DE13E2500349FD5 /* uthex.c in Sources */,
@@ -2237,6 +2331,7 @@
 				F01A4DA62DE13E2500349FD5 /* dbxface.c in Sources */,
 				F01A4DA72DE13E2500349FD5 /* exregion.c in Sources */,
 				F01A4DA82DE13E2500349FD5 /* osdarwin.c in Sources */,
+				7E622C382EAC1DDA00742B43 /* ACPICASupport.c in Sources */,
 				F01A4DA92DE13E2500349FD5 /* dbobject.c in Sources */,
 				F01A4DAA2DE13E2500349FD5 /* psargs.c in Sources */,
 				F01A4DAB2DE13E2500349FD5 /* nsparse.c in Sources */,
@@ -2284,6 +2379,51 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		7E5EE13D2EAC8277006AF949 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PureACPIPCI/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MARKETING_VERSION = 1.0;
+				MODULE_NAME = org.puredarwin.driver.PureACPIPCI;
+				MODULE_VERSION = 1.0.0d1;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPCIDriver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Debug;
+		};
+		7E5EE13E2EAC8277006AF949 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = NO;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1.0.0d1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PureACPIPCI/Info.plist;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				MACOSX_DEPLOYMENT_TARGET = 10.13;
+				MARKETING_VERSION = 1.0;
+				MODULE_NAME = org.puredarwin.driver.PureACPIPCI;
+				MODULE_VERSION = 1.0.0d1;
+				PRODUCT_BUNDLE_IDENTIFIER = org.puredarwin.driver.PDACPIPCIDriver;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				RUN_CLANG_STATIC_ANALYZER = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				WRAPPER_EXTENSION = kext;
+			};
+			name = Release;
+		};
 		7E6561052EA752A20051A78A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2313,7 +2453,10 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_PREPROCESSOR_DEFINITIONS = "ACPI_APPLICATION=1";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"ACPI_APPLICATION=1",
+					"_PUREDARWIN=1",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2326,7 +2469,10 @@
 				CLANG_CXX_LANGUAGE_STANDARD = "c++98";
 				CODE_SIGN_STYLE = Automatic;
 				GCC_C_LANGUAGE_STANDARD = c99;
-				GCC_PREPROCESSOR_DEFINITIONS = "ACPI_APPLICATION=1";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"ACPI_APPLICATION=1",
+					"_PUREDARWIN=1",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
@@ -2374,6 +2520,10 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"PDACPI_BUILDING_PLATFORM=1",
+					"DEBUG=1",
+				);
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/ACPICA/include";
 				INFOPLIST_FILE = PDACPIPlatform/Info.plist;
@@ -2406,6 +2556,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GCC_C_LANGUAGE_STANDARD = "compiler-default";
+				GCC_PREPROCESSOR_DEFINITIONS = "PDACPI_BUILDING_PLATFORM=1";
 				GENERATE_INFOPLIST_FILE = YES;
 				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/ACPICA/include";
 				INFOPLIST_FILE = PDACPIPlatform/Info.plist;
@@ -2481,12 +2632,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/ACPICA/include";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				TARGETED_DEVICE_FAMILY = x86_64;
 			};
 			name = Debug;
@@ -2537,12 +2690,14 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				HEADER_SEARCH_PATHS = "${PROJECT_DIR}/ACPICA/include";
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.4;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = NO;
 				SDKROOT = macosx;
+				SYSTEM_HEADER_SEARCH_PATHS = "$(PROJECT_DIR)";
 				TARGETED_DEVICE_FAMILY = x86_64;
 			};
 			name = Release;
@@ -2595,6 +2750,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		7E5EE13C2EAC8277006AF949 /* Build configuration list for PBXNativeTarget "PDACPIPCIDriver" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7E5EE13D2EAC8277006AF949 /* Debug */,
+				7E5EE13E2EAC8277006AF949 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		7E6561042EA752A20051A78A /* Build configuration list for PBXNativeTarget "libacpica" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

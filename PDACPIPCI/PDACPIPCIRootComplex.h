@@ -31,17 +31,30 @@
  * Created by github.com/csekel (InSaneDarwin)
  */
 
-#include "accommon.h"
-#include "acpi.h"
-#include <IOKit/IOKitLib.h>
-#include "PDACPIPlatform/PDACPIPlatformPrivate.h"
+#ifndef _PDACPI_PCI_H
+#define _PDACPI_PCI_H
 
-ACPI_STATUS
-AcpiOsGetTableByIndex(
-    UINT32                  Index,
-    ACPI_TABLE_HEADER       **Table,
-    UINT32                  *Instance,
-    ACPI_PHYSICAL_ADDRESS   *Address)
-{
-    return AE_NOT_IMPLEMENTED;
-}
+#include <AvailabilityVersions.h>
+
+/* There's a lot of SPI/Private functions I need here, especially in the XNU department */
+#if __has_include(<IOKit/pci/IOPCIPrivate.h>)
+#include <IOKit/pci/IOPCIPrivate.h>
+#else
+#include <IOKit/pci/IOPCIBridge.h>
+#include <ExternalHeaders/IOKit/pci/IOPCIPrivate.h>
+#endif
+
+/*
+ * macOS Monterey/Darwin 21 introduced a new helper abstraction class, use it where possible.
+ */
+#if __MAC_OS_X_VERSION_MIN_REQUIRED < __MAC_12_0
+#define IOPCIHostBridge IOPCIBridge
+#endif
+
+class PDACPIPCIRootComplex : public IOPCIHostBridge {
+    OSDeclareDefaultStructors(PDACPIPCIRootComplex);
+    
+    
+};
+
+#endif
